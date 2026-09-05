@@ -1,158 +1,145 @@
-# Project integration and discovery
+# Use the workbench with your interview skills
 
-Use two separately installable parts: the executable owns local forms and socket
-delivery; the skill applies whenever the agent interviews the user. A project
-instruction can reinforce that default. Neither part rewrites the interview skill
-or becomes the source of project decisions.
+The workbench lets you answer interview rounds in a browser while reasoning and
+follow-up stay in the same chat. Once installed, it should be selected whenever
+the agent interviews you. You can simply say “grill me” or invoke your usual
+interview skill; you do not need to request a browser form.
 
-## Discovery needs installation, routing, and instructions
+## Set up the project once
 
-A repository published on the internet is not automatically visible to an agent.
-The skill must first be installed into a location the agent application scans.
-For the current task, Codex combines applicable project skills (`.agents/skills`
-from the working directory up to the repository root), user skills
-(`~/.agents/skills`), administrator skills, and bundled system skills. Enabled
-plugins can also contribute skills. This does not include every other project's
-local skills. Here, “available skills” means this combined set for the current task.
-Codex initially reads names and descriptions, then loads the full skill when
-selected. Explicit invocation and description-based matching are supported.
-Large skill lists can shorten or omit descriptions, so put the main trigger first.
-[Official skill documentation](https://learn.chatgpt.com/docs/build-skills)
+You need Node.js 22 or later, and an agent that can open a browser and keep a local
+command running while waiting for your answers. The browser, workbench server,
+and agent must run on the same computer.
 
-The bundled [skill](../skills/grilling-workbench/SKILL.md) triggers on the agent
-interviewing the user, including `grill-me`, `grilling`, `grill-with-docs`,
-`wayfinder`, requirements gathering, and decision interviews. The user invokes
-their normal interview workflow; they do not need to mention the workbench or a
-browser, and no separate project preference is required. The same trigger applies
-when the agent starts an interview as part of an ongoing task. Its Codex metadata
-permits implicit invocation. Its instructions link to the socket protocol and
-question format, both copied by the installer.
-Installing the CLI alone does not install the skill; installing the skill alone
-does not provide Node, the executable, browser control, or a persistent tool wait.
-
-After package installation:
+From the project where you want to use it:
 
 ```sh
+npm install --save-dev /absolute/path/grilling-workbench-0.2.0.tgz
 npx --no-install grilling-workbench install-skill
 ```
 
-Codex detects installed skill changes automatically; restart Codex if the new
-skill does not appear. Check its visible name and source path in the skill picker;
-avoid duplicate user/project copies of the same name. Explicit `$grilling-workbench`
-invocation can verify installation, but is not a required step in normal use.
-The intended automatic trigger is an interview, even when the user's request only
-says “grill me.” Model selection is not a deterministic application hook; verify
-that behavior in the target agent. A project instruction can reinforce the trigger.
+Replace the archive path with your downloaded or locally built release. The first
+command installs the application; the second installs the instructions that teach
+the agent when and how to use it. It creates `.agents/skills/grilling-workbench`
+and preserves any existing skill at that path.
 
-## Optional project instruction
+For building the archive, installation in a non-Node project, or upgrades, use the
+[deployment guide](deployment.md). Keep your existing interview skills installed;
+Matt Pocock's repository has its own [installation instructions](https://github.com/mattpocock/skills).
 
-The installed skill already defines the interview trigger. To reinforce it in a
-project, merge the following small section into the existing AGENTS.md or
-equivalent host instruction file. Preserve surrounding instructions and the
-tracker/domain configuration already present. Replace the
-command if the project uses a global executable. This repository ships the text;
-its installer does not edit another project's instructions automatically.
+## Start your usual interview
+
+For example, invoke `grill-me` or say:
+
+> Grill me about the checkout design.
+
+The expected flow is:
+
+1. The interview skill chooses the next round of questions.
+2. The agent starts a workbench session, connects its submission listener, and
+   opens the form in the browser.
+3. You answer, revisit questions as needed, and click **Submit form** once.
+4. The agent receives the complete submitted round and continues the same chat.
+
+There is no separate review step or manual copy/paste. You may leave a question
+blank: submission reports that as `not_answered`, so the agent knows you chose
+not to answer it. That does not settle the underlying decision.
+
+For explanations or changes to a question, use chat or the browser's native
+Annotate/Quick Annotate features. The agent can revise the form while preserving
+your draft. The app itself only handles answering and submitting questions.
+
+The agent must remain actively waiting on the listener to continue immediately.
+This package does not start new turns in an idle chat. Agents should read the
+[operating protocol](../skills/grilling-workbench/references/agent-protocol.md)
+before presenting questions; it covers the listener, receipts, and interruptions.
+The [question format](../skills/grilling-workbench/references/questions.md) is the
+reference for authoring or updating a round.
+
+## How it fits the existing workflow
+
+The workbench handles question presentation and answer delivery. Your chosen skill
+still decides what to ask, interprets the answers, updates project records, and
+determines when the interview is complete.
+
+| Workflow | How to combine it with the workbench |
+| --- | --- |
+| [`grilling`](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/productivity/grilling/SKILL.md) / `grill-me` | Use one form for the current round of independent questions. Questions that depend on unresolved answers belong in a later round. |
+| [`grill-with-docs`](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/grill-with-docs/SKILL.md) | Use the same form interface while the existing interview and domain-modeling skills maintain the project documents. |
+| [`wayfinder`](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/wayfinder/SKILL.md) | Use forms during interviews about the current decision ticket. Keep the map, ticket ownership, dependencies, and resolution records in Wayfinder. |
+| [`setup-matt-pocock-skills`](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/setup-matt-pocock-skills/SKILL.md) | Keep the tracker and domain-document configuration it establishes. Installing the workbench does not replace that configuration or invoke setup. |
+
+A submitted form supplies answers; it does not automatically close tickets or
+approve further work. Keep canonical decisions in the configured documents or
+tracker, using submission and question IDs for attribution. Raw session files
+remain private by default.
+
+These integration recommendations were reviewed against upstream revision
+`3cca18b368ae95cdbdebbff572ccafa662551015` on September 5, 2026. Check the actual
+installed skills when upgrading; there is no need to patch their bodies to use
+the workbench.
+
+## If the agent does not use the workbench
+
+First check whether `grilling-workbench` appears in the agent's available skills.
+In Codex, that list combines applicable project skills, user skills, administrator
+and system skills, and enabled plugin skills. It does not automatically include
+local skills from unrelated projects. Our installer adds the workbench at the
+current project's `.agents/skills/grilling-workbench` path.
+
+Codex normally detects new skills automatically. If it is missing, restart Codex
+and check the installed path. If it appears more than once, inspect the source
+paths for duplicate user/project installations. [Codex skill discovery](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills)
+
+If the skill is listed but not selected during an interview, explicitly invoke
+`$grilling-workbench` once to check that it can run. This is a troubleshooting step,
+not the expected everyday workflow. Automatic selection depends on the agent
+matching the interview to the skill description; it is not an application hook.
+[How Codex selects skills](https://learn.chatgpt.com/docs/build-skills#how-chatgpt-and-codex-use-skills)
+
+A short project instruction can reinforce the trigger. Merge this into the
+project's existing AGENTS.md or equivalent instruction file, preserving its other
+rules. It is optional; the skill already defines the interview trigger.
 
 ```markdown
-## Question interface
+Whenever interviewing the user, use the grilling-workbench skill at
+`.agents/skills/grilling-workbench/SKILL.md`. Apply it alongside the current
+interview workflow, including grill-me, without requiring a request for a browser
+form. The command is `npx --no-install grilling-workbench`.
 
-Whenever interviewing the user, use the installed grilling-workbench skill at
-`.agents/skills/grilling-workbench/SKILL.md` as the question interface. The command
-is `npx --no-install grilling-workbench`. This applies when an interview comes
-from another skill, including grill-me, or from the ongoing task; the user need
-not ask for a browser form. Read the skill before presenting a round
-and arm its socket listener before opening the form. Continue the current chat
-when the submitted snapshot arrives; no manual transfer or polling monitor.
-
-Keep question selection, reasoning, decision records, and completion criteria in
-the user's chosen workflow. Clarification stays in chat. Submitted `not_answered`
-outcomes do not settle their underlying decisions. Use another interface when
-the user explicitly requests it. If this host cannot keep an active tool wait,
-explain that limitation rather than claiming automatic delivery.
+Read the skill's operating protocol before presenting questions. Keep reasoning,
+clarification, and decision records in the existing workflow. Respect an explicit
+user request for another interface.
 ```
 
-This instruction reinforces presentation. It does not grant permission for
-issue creation, publishing, execution, or starting a different interview workflow.
+The installer does not edit project instructions automatically. Adjust the command
+in the snippet if you use a global installation.
 
-## Alongside Matt Pocock's skills
+## Check answer delivery in your agent
 
-Compatibility was reviewed against upstream revision
-`3cca18b368ae95cdbdebbff572ccafa662551015` on September 5, 2026. These
-are composition recommendations for the inspected versions, not a promise that
-upstream interfaces never change. Read the actual installed skill when using it.
+Try a throwaway two-question round. Answer one question, leave the other blank,
+and submit. The agent should receive both outcomes and continue without another
+chat message. Its listener should already be waiting before the form opens.
 
-| Existing workflow | Workbench's role | Workflow retains |
-| --- | --- | --- |
-| `grilling` / `grill-me` | Present one current independent decision frontier as a form. | Dependency reasoning, subsequent rounds, interpretation, and completion. |
-| `grill-with-docs` | Supply submitted answers through that same interface. | `grilling` plus `domain-modeling`, including its documentation rules. |
-| `wayfinder` | Supply answers while discussing the current decision ticket. | Map, ticket claims, dependencies, resolution records, and planning boundaries. |
-| `setup-matt-pocock-skills` | No automatic invocation or configuration replacement. | The project's tracker, domain-document layout, and related instructions. |
+If the page stays on “Waiting for the agent,” inspect the listener process and
+follow the [reconnection and receipt instructions](../skills/grilling-workbench/references/agent-protocol.md#definitions-and-interruptions).
+Do not replace the listener with repeated status checks or ask the user to paste
+answers. If the agent application cannot maintain an active tool wait, that
+integration needs support before immediate continuation can work.
 
-Upstream `grilling` batches currently independent decisions and waits before
-recomputing the next round. This maps to one form per round, with dependent
-questions held for later. [Grilling source](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/productivity/grilling/SKILL.md)
+The package tests verify installation, socket delivery, receipts, and recovery.
+Automatic skill selection in a fresh agent installation still needs this real
+workflow check. Test ordinary interview requests without mentioning the browser;
+explanations about an existing option should continue in chat.
 
-`grill-with-docs` composes the interview with domain modeling. Keep that
-composition; only its presentation changes. [Grill with docs source](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/grill-with-docs/SKILL.md)
+## Share it with another project
 
-Wayfinder's map and decision tickets remain canonical, with planning as its default
-scope. A form submission is evidence for the conversation, not automatic ticket
-resolution. [Wayfinder source](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/wayfinder/SKILL.md)
+Distribute the release archive, which includes the matching application and skill,
+and repeat the setup above. The skill's instructions alone do not install the
+application or provide browser and command-execution tools.
 
-Upstream setup writes tracker/domain guidance through the project's existing
-instruction file. Add the workbench preference alongside it; do not overwrite
-that configuration or patch installed upstream skill bodies.
-[Setup source](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/setup-matt-pocock-skills/SKILL.md)
-The extra project instruction is optional, not a prerequisite for the workbench's
-interview trigger.
-
-A `not_answered` item may leave a prerequisite open. The agent records that outcome
-and discusses any necessary next step in chat; it does not infer agreement, choose
-its recommendation, or silently close the issue. Canonical decisions belong in
-the configured documents/tickets, with the submission ID and relevant question ID
-for attribution. Session files contain raw input and should stay private by default.
-
-Upstream documents `npx skills@latest add mattpocock/skills` for installing its
-skills. Install/configure only the workflows the project intends to use; this
-adapter does not automatically invoke user-only skills. [Upstream repository](https://github.com/mattpocock/skills)
-
-## Publishing the skill
-
-For local adoption now, use the archive's tested skill installer. For a future
-repository release, the existing `skills/grilling-workbench/SKILL.md` layout is
-recognized by the Skills CLI. Once an actual repository URL and release are
-chosen, users can install that skill with `skills add <repository> --skill
-grilling-workbench`. The same CLI supports local source paths for development.
-[Skills CLI source](https://github.com/vercel-labs/skills#skill-discovery)
-
-Release the executable and skill together at matching versions, and document the
-actual package location. A skill listing is a distribution path, not a substitute
-for the executable. Public npm publication still needs an owner/package name,
-license decision, and release destination; none is invented or published here.
-A native host plugin is a possible later distribution wrapper if desired, not a
-requirement for the selected project-local CLI deployment.
-
-## Verify the integration in a target host
-
-The package smoke test verifies executable behavior and that skill files survive
-installation. Skill selection and host event delivery need a real host trial:
-
-1. Confirm the installed skill appears with the intended path and version context.
-2. Explicitly invoke it with a throwaway two-question form; observe a listener
-   ready before the browser opens.
-3. Answer one question, leave the other blank, and submit once. The agent should
-   receive both outcomes and respond without another chat message or paste.
-4. Without the optional project instruction, test “Grill me about checkout” and
-   “Continue the interview.” Also test a task where the agent decides it needs an
-   interview to gather requirements. The workbench should be selected before
-   questions are presented, without asking whether the user wants a browser form.
-   Confirm the active interview skill still owns reasoning and records. Repeat
-   with the project instruction to verify that route too.
-5. Test boundaries: “Explain this option” should stay in chat; “Use ordinary chat
-   questions this time” should respect the user's interface choice.
-6. Interrupt/reconnect the listener before receipt; confirm one saved snapshot
-   replays. After receipt, confirm it is not applied twice to decision records.
-
-These are acceptance scenarios, not claims that every model or host has already
-passed them. The native browser annotation workflow was exercised during UI
-iteration; autonomous selection in a fresh installed host remains to be verified.
+For a future hosted repository release, `skills/grilling-workbench/SKILL.md` uses
+a layout recognized by the [Skills CLI](https://github.com/vercel-labs/skills#skill-discovery).
+Users could then install it with `skills add <repository> --skill grilling-workbench`
+using the actual published repository address. Public release destinations and
+licensing are still separate decisions; see [distribution and installation](deployment.md#distribution-and-installation).

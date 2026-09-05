@@ -109,6 +109,5 @@ archive offline in an unrelated directory and exercises the installed executable
 skill installation, concurrent isolated sessions, full submission, receipt,
 definition updates, and restart. CI runs those commands for Node 22 and 24.
 
-Earlier responsive-browser checks and known accessibility gaps are recorded in
-the [historical prototype report](docs/prototype.md). The [first design proposal](docs/design-proposal.md)
-is historical and superseded where it differs from the behavior above.
+The [validation note](docs/validation.md) records the automated and browser
+checks, the delivery guarantees they establish, and the remaining validation gaps.
