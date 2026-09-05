@@ -6,7 +6,7 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': 
 const capital = value => value[0].toUpperCase() + value.slice(1);
 let state, version, currentId, running = false, error = '', conflict = false, connectionWarning = '';
 let pending = [], review = null, reviewIds = [], shownSubmission = null;
-let toastTimer, modalMode = '';
+let toastTimer, modalMode = '', refreshing = false;
 
 function toast(message) {
   const notice = document.querySelector('#notice');
@@ -244,9 +244,12 @@ async function loadSaved() {
 }
 
 async function refresh() {
-  if (running || pending.length || conflict) return;
+  if (running || pending.length || conflict || refreshing) return;
+  refreshing = true;
   try {
     const result = await request('/api/session');
+    // A poll begun before typing must never replace a newly staged answer.
+    if (running || pending.length || conflict) return;
     connectionWarning = '';
     if (result.version !== version) {
       state = result.state; version = result.version;
@@ -254,6 +257,7 @@ async function refresh() {
       render();
     } else renderChrome();
   } catch (failure) { connectionWarning = failure.message; renderChrome(); }
+  finally { refreshing = false; }
 }
 
 async function start() {
