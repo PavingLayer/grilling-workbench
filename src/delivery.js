@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { restoreState } from './core.js';
-import { atomicWrite } from './storage.js';
+import { atomicWrite, acquireLock } from './storage.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const defaultDataDir = join(root, '.workbench');
@@ -30,11 +30,13 @@ export async function pendingSubmissions(dataDir = defaultDataDir) {
 }
 
 export async function acknowledgeSubmission(id, { dataDir = defaultDataDir, write = atomicWrite } = {}) {
-  const [submissions, receipts] = await Promise.all([readSubmitted(dataDir), readReceipts(dataDir)]);
-  if (!submissions.some(s => s.id === id)) throw new Error('Only a saved submission can be acknowledged.');
-  if (receipts.received.some(r => r.submissionId === id)) return receipts;
-  const next = { received: [...receipts.received, { submissionId: id, receivedAt: new Date().toISOString() }] };
-  await write(join(dataDir, 'chat-receipts.json'), `${JSON.stringify(next, null, 2)}\n`);
-  return next;
+  const release = await acquireLock(join(dataDir, 'receipt.lock'));
+  try {
+    const [submissions, receipts] = await Promise.all([readSubmitted(dataDir), readReceipts(dataDir)]);
+    if (!submissions.some(s => s.id === id)) throw new Error('Only a saved submission can be acknowledged.');
+    if (receipts.received.some(r => r.submissionId === id)) return receipts;
+    const next = { received: [...receipts.received, { submissionId: id, receivedAt: new Date().toISOString() }] };
+    await write(join(dataDir, 'chat-receipts.json'), `${JSON.stringify(next, null, 2)}\n`);
+    return next;
+  } finally { await release(); }
 }
-

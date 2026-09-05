@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 import { initialState, restoreState, transition, validateQuestionnaire } from './core.js';
 import { atomicWrite } from './storage.js';
 import { readReceipts } from './delivery.js';
-import { createSubmissionSocket } from './submission-socket.js';
 export { atomicWrite } from './storage.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -68,6 +67,10 @@ export function createWorkbenchServer({ dataDir = join(root, '.workbench'), ques
     if (!/^(127\.0\.0\.1|localhost):\d+$/.test(host) || (req.headers.origin && req.headers.origin !== `http://${host}`)) return respond(res, 403, { error: 'This workbench accepts requests from its own local page only.' });
     const path = new URL(req.url, `http://${host}`).pathname;
     try {
+      if (path === '/api/health' && req.method === 'GET') {
+        await serial(load);
+        return respond(res, 200, { status: 'ok' });
+      }
       if (path === '/api/delivery' && req.method === 'GET') return respond(res, 200, await readReceipts(dataDir));
       if (path === '/api/session' && req.method === 'GET') return respond(res, 200, envelope(await serial(load)));
       if (path === '/api/actions' && req.method === 'POST') {
@@ -101,14 +104,16 @@ export function createWorkbenchServer({ dataDir = join(root, '.workbench'), ques
       respond(res, error.status || 500, { error: error.status ? error.message : `Could not load or save the form. ${error.message}`, ...(error.current ? { current: error.current } : {}) });
     }
   });
+  server.prepare = () => serial(load);
+  server.drain = () => queue;
   return server;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const server = createWorkbenchServer();
-  const port = Number(process.env.PORT || 4310);
-  const signals = createSubmissionSocket(server);
-  signals.on('error', error => { console.error(`Submission socket: ${error.message}`); process.exitCode = 1; server.close(); });
-  signals.listen(Number(process.env.SIGNAL_PORT || port + 1), '127.0.0.1', () => console.log(`Submission socket: 127.0.0.1:${signals.address().port}`));
-  server.listen(port, '127.0.0.1', () => console.log(`Workbench: http://127.0.0.1:${server.address().port}/`));
+  const { startWorkbench, handleShutdown } = await import('./runtime.js');
+  try {
+    const running = await startWorkbench({ dataDir: join(root, '.workbench'), questionsPath: join(root, 'data/questions.json'), port: Number(process.env.PORT || 4310), signalPort: Number(process.env.SIGNAL_PORT || 4311) });
+    handleShutdown(running);
+    console.log(`Workbench: ${running.info.url}`);
+  } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
