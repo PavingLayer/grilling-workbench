@@ -3,7 +3,7 @@ import { readFile, mkdir, open, rename, rm } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { initialState, restoreState, transition } from './core.js';
+import { initialState, restoreState, transition, validateQuestionnaire } from './core.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const publicFiles = { '/': ['public/index.html', 'text/html'], '/app.js': ['public/app.js', 'text/javascript'], '/styles.css': ['public/styles.css', 'text/css'], '/core.js': ['src/core.js', 'text/javascript'] };
@@ -35,12 +35,15 @@ export function createWorkbenchServer({ dataDir = join(root, '.workbench'), ques
     return next;
   };
   async function commit(next) {
-    await write(statePath, `${JSON.stringify(next, null, 2)}\n`);
+    try { await write(statePath, `${JSON.stringify(next, null, 2)}\n`); }
+    catch { throw new Error('The form could not be saved on this computer. Keep the page open and retry.'); }
     saved = next;
     return saved;
   }
   async function load() {
-    const doc = JSON.parse(await readFile(questionsPath, 'utf8'));
+    let doc;
+    try { doc = validateQuestionnaire(JSON.parse(await readFile(questionsPath, 'utf8'))); }
+    catch { throw new Error('Question definitions could not be loaded. Ask the agent to check the question file, then retry. Saved answers have been kept.'); }
     if (!saved) {
       let raw;
       try { raw = JSON.parse(await readFile(statePath, 'utf8')); }

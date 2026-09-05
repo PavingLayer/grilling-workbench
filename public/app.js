@@ -24,7 +24,8 @@ async function request(path, options) {
 }
 
 function saveText() {
-  if (error || connectionWarning) return 'Not saved · connection needs attention';
+  if (error) return 'Not saved · retry needed';
+  if (connectionWarning) return 'Refresh unavailable · drafts retained';
   return pending.length ? 'Saving…' : 'Saved on this computer';
 }
 
