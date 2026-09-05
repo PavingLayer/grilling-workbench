@@ -20,7 +20,7 @@ async function setup(t, write) {
 }
 const edit = (questionId, optionIds, text = '') => ({ type: 'edit', questionId, answer: { optionIds, text } });
 
-test('durable drafts, conflict detection, partial submission and retry', async t => {
+test('durable drafts, conflict detection, whole-form submission and retry', async t => {
   const api = await setup(t);
   let saved = (await api.get()).body;
   const first = { version: saved.version, requestId: 'edit-a', action: edit('atmosphere', ['quiet'], 'Test draft') };
@@ -31,7 +31,7 @@ test('durable drafts, conflict detection, partial submission and retry', async t
   assert.equal(response.status, 409);
   response = await api.post({ version: saved.version, requestId: 'edit-b', action: edit('activities', ['open-reading'], 'Pending note') });
   saved = response.body;
-  const review = makeReview(saved.state, ['atmosphere'], 'submit-a', '2026-09-05T12:00:00.000Z');
+  const review = makeReview(saved.state, 'submit-a', '2026-09-05T12:00:00.000Z');
   const submit = { version: saved.version, requestId: 'confirm-a', action: { type: 'submit', review } };
   response = await api.post(submit);
   assert.equal(response.status, 200);
@@ -54,7 +54,7 @@ test('failed writes retain saved drafts and allow retrying the same confirmation
   let saved = (await api.get()).body;
   saved = (await api.post({ version: saved.version, requestId: 'draft', action: edit('atmosphere', ['quiet']) })).body;
   const before = await readFile(join(api.dataDir, 'session.json'), 'utf8');
-  const action = { version: saved.version, requestId: 'confirm', action: { type: 'submit', review: makeReview(saved.state, ['atmosphere'], 's-1', '2026-09-05T12:00:00.000Z') } };
+  const action = { version: saved.version, requestId: 'confirm', action: { type: 'submit', review: makeReview(saved.state, 's-1', '2026-09-05T12:00:00.000Z') } };
   fail = true;
   assert.equal((await api.post(action)).status, 500);
   assert.equal(await readFile(join(api.dataDir, 'session.json'), 'utf8'), before);
@@ -67,7 +67,7 @@ test('agent definition edits refresh the session and invalidate stale reviews wh
   const api = await setup(t);
   let saved = (await api.get()).body;
   saved = (await api.post({ version: saved.version, requestId: 'draft', action: edit('atmosphere', ['quiet']) })).body;
-  const review = makeReview(saved.state, ['atmosphere'], 's-1', '2026-09-05T12:00:00.000Z');
+  const review = makeReview(saved.state, 's-1', '2026-09-05T12:00:00.000Z');
   const doc = structuredClone(fixture); doc.questions[0].context = 'Updated by the agent'; doc.questions[0].revision++;
   await writeFile(api.questionsPath, JSON.stringify(doc));
   const changed = (await api.get()).body;

@@ -7,22 +7,25 @@ import { initialState, transition, restoreState, progress, statusFor, makeReview
 const fixture = JSON.parse(readFileSync(new URL('../data/questions.json', import.meta.url)));
 const initial = () => initialState(fixture);
 const edit = (state, id, optionIds, text = '') => transition(state, { type: 'edit', questionId: id, answer: { optionIds, text } });
-const review = (state, ids, id = 'submission-1') => makeReview(state, ids, id, '2026-09-05T12:00:00.000Z');
+const review = (state, id = 'submission-1') => makeReview(state, id, '2026-09-05T12:00:00.000Z');
 
 test('recommendations do not select or submit an answer', () => {
   assert.deepEqual(initial().drafts, {});
-  assert.deepEqual(progress(initial()), { total: 3, submitted: 0, draft: 0, unanswered: 3, deferred: 0, pending: 3 });
+  assert.deepEqual(progress(initial()), { total: 3, answered: 0, submitted: 0, draft: 0, unanswered: 3, deferred: 0, pending: 3 });
 });
 
-test('partial submission, retry, immutable versions, and unrelated drafts', () => {
+test('whole-form submission includes blanks, rejects subsets, and preserves immutable retries', () => {
   let state = edit(initial(), 'atmosphere', ['quiet'], 'First answer');
   state = edit(state, 'activities', ['open-reading'], 'PRIVATE PENDING DRAFT');
   const beforeB = structuredClone(state.drafts.activities);
-  const snapshot = review(state, ['atmosphere']);
+  const snapshot = review(state);
   state = transition(state, { type: 'submit', review: snapshot });
   assert.deepEqual(state.drafts.activities, beforeB);
-  assert.equal(progress(state).pending, 2);
-  assert.doesNotMatch(formatSubmission(snapshot), /PRIVATE PENDING DRAFT|Which activities/);
+  assert.equal(progress(state).pending, 0);
+  assert.deepEqual(snapshot.answers.map(a => a.outcome), ['answered', 'answered', 'not_answered']);
+  assert.match(formatSubmission(snapshot), /PRIVATE PENDING DRAFT/);
+  assert.match(formatSubmission(snapshot), /Not answered: the user submitted/);
+  assert.throws(() => transition(initial(), { type: 'submit', review: { ...snapshot, id: 'partial', answers: snapshot.answers.slice(0, 1) } }), /changed/);
   state = edit(state, 'atmosphere', ['social']);
   state = transition(state, { type: 'submit', review: snapshot });
   assert.equal(state.submissions.length, 1);
@@ -32,7 +35,7 @@ test('partial submission, retry, immutable versions, and unrelated drafts', () =
 
 test('stale review is rejected after editing, even when wording returns to the same value', () => {
   let state = edit(initial(), 'atmosphere', ['quiet']);
-  const snapshot = review(state, ['atmosphere']);
+  const snapshot = review(state);
   state = edit(state, 'atmosphere', ['social']);
   state = edit(state, 'atmosphere', ['quiet']);
   assert.throws(() => transition(state, { type: 'submit', review: snapshot }), /changed/);
@@ -69,7 +72,7 @@ test('invalid persisted state is rejected without replacing it', () => {
 
 test('changing a navigation label preserves drafts and the exact reviewed question', () => {
   let state = edit(initial(), 'atmosphere', ['social']);
-  const snapshot = review(state, ['atmosphere']);
+  const snapshot = review(state);
   const before = structuredClone(state.drafts);
   const doc = structuredClone(state.questionnaire);
   doc.navigationLabels = { ...doc.navigationLabels, atmosphere: 'Room atmosphere' };
@@ -94,9 +97,7 @@ test('generated answer histories agree with an independent small model after eve
       const index = command.index, id = ids[index], item = model[index];
       const before = JSON.stringify(state), oldState = state, oldHistory = JSON.stringify(state.submissions);
       const otherDrafts = ids.filter(qid => qid !== id).map(qid => structuredClone(state.drafts[qid]));
-      const value = () => JSON.stringify({ choice: item.choice, text: item.text, version: item.answeredVersion });
-      const answered = () => Boolean(item.choice.length || item.text.trim());
-      const submitted = () => answered() && !item.deferred && item.answeredVersion === item.version && item.history.includes(value());
+
       if (command.kind === 'edit') {
         const options = state.questionnaire.questions[index].options;
         item.choice = options.length && command.choice < options.length ? [options[command.choice].id] : [];
@@ -116,29 +117,35 @@ test('generated answer histories agree with an independent small model after eve
         item.answeredVersion = item.version;
         state = transition(state, { type: 'adopt', questionId: id });
       } else if (command.kind === 'submit') {
-        if (answered() && item.answeredVersion === item.version && !submitted()) {
-          const snapshot = review(state, [id], `submission-${step}`);
+        if (model.every(m => !(m.choice.length || m.text.trim()) || m.answeredVersion === m.version)) {
+          const snapshot = review(state, `submission-${step}`);
+          assert.equal(snapshot.answers.length, ids.length);
           state = transition(state, { type: 'submit', review: snapshot });
           state = transition(state, { type: 'submit', review: snapshot });
-          item.deferred = false;
-          item.history.push(value()); submissionCount++;
-        } else assert.throws(() => review(state, [id], `submission-${step}`));
+          for (const m of model) {
+            m.deferred = false;
+            m.answeredVersion = m.version;
+            m.history.push(JSON.stringify({ choice: m.choice, text: m.text, version: m.answeredVersion }));
+          }
+          submissionCount++;
+        } else assert.throws(() => review(state, `submission-${step}`));
       } else if (command.kind === 'reload') state = restoreState(JSON.parse(JSON.stringify(state)));
       assert.equal(JSON.stringify(oldState), before, 'transitions must not mutate input');
-      assert.deepEqual(ids.filter(qid => qid !== id).map(qid => state.drafts[qid]), otherDrafts, 'unrelated drafts');
+      if (command.kind !== 'submit') assert.deepEqual(ids.filter(qid => qid !== id).map(qid => state.drafts[qid]), otherDrafts, 'unrelated drafts');
       assert.equal(JSON.stringify(state.submissions.slice(0, JSON.parse(oldHistory).length)), oldHistory, 'immutable history');
       assert.equal(state.submissions.length, submissionCount, 'only explicit confirmations create submissions');
       assert.deepEqual(restoreState(JSON.parse(JSON.stringify(state))), state);
       let expectedSubmitted = 0;
       for (const [i, m] of model.entries()) {
         const has = Boolean(m.choice.length || m.text.trim());
-        const isSubmitted = has && !m.deferred && m.answeredVersion === m.version && m.history.includes(JSON.stringify({ choice: m.choice, text: m.text, version: m.answeredVersion }));
+        const isSubmitted = !m.deferred && m.answeredVersion === m.version && m.history.includes(JSON.stringify({ choice: m.choice, text: m.text, version: m.answeredVersion }));
         assert.equal(statusFor(state, ids[i]), isSubmitted ? 'submitted' : has ? 'draft' : 'unanswered');
         assert.deepEqual(state.drafts[ids[i]]?.optionIds || [], m.choice);
         assert.equal(state.drafts[ids[i]]?.text || '', m.text);
         assert.equal(state.drafts[ids[i]]?.deferred || false, m.deferred);
         if (isSubmitted) expectedSubmitted++;
       }
+      assert.equal(progress(state).answered, model.filter(m => m.choice.length || m.text.trim()).length);
       assert.equal(progress(state).submitted, expectedSubmitted);
       assert.equal(progress(state).pending, 3 - expectedSubmitted);
     }

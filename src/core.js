@@ -112,7 +112,7 @@ export function transition(state, action) {
     const expected = makeReview(state, review.id, review.createdAt);
     insist(equal(expected, review), 'The reviewed answers changed. Review them again before submitting.');
     const drafts = { ...state.drafts };
-    for (const a of review.answers) drafts[a.question.id] = { ...draftFor(state, a.question.id), deferred: false };
+    for (const a of review.answers) drafts[a.question.id] = { ...draftFor(state, a.question.id), question: copy(a.question), deferred: false };
     return { ...state, drafts, submissions: [...state.submissions, copy(review)] };
   }
   insist(['edit', 'defer', 'adopt'].includes(action.type), 'Unknown action.');
