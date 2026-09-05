@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initialState, restoreState, transition, validateQuestionnaire } from './core.js';
 import { atomicWrite } from './storage.js';
-import { readReceipts } from './monitor.js';
+import { readReceipts } from './delivery.js';
 import { createSubmissionSocket } from './submission-socket.js';
 export { atomicWrite } from './storage.js';
 

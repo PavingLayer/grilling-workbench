@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { once } from 'node:events';
 import { createWorkbenchServer, atomicWrite } from '../src/server.js';
 import { createSubmissionSocket, waitForSubmission } from '../src/submission-socket.js';
-import { acknowledgeSubmission, pendingSubmissions, readReceipts } from '../src/monitor.js';
+import { acknowledgeSubmission, pendingSubmissions, readReceipts } from '../src/delivery.js';
 import { makeReview } from '../src/core.js';
 
 const fixture = JSON.parse(await readFile(new URL('../data/questions.json', import.meta.url)));

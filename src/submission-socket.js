@@ -1,5 +1,5 @@
 import net from 'node:net';
-import { pendingSubmissions } from './monitor.js';
+import { pendingSubmissions } from './delivery.js';
 
 // One newline-delimited JSON event per saved form. No interval or polling.
 export function createSubmissionSocket(workbench, { dataDir } = {}) {
