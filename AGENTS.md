@@ -1,7 +1,7 @@
 # Working agreements
 
-Before designing or implementing the workbench, read [README.md](README.md) for
-the agreed requirements, integration boundary, and open design questions.
+Before changing the workbench, read [README.md](README.md) for its current
+behavior, integration boundaries, and operating guides.
 
 Keep workbench changes in this repository. Inventor is a separate project; its
 source and interview documents are outside this project's change scope.
