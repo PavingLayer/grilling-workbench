@@ -14,6 +14,23 @@ test('recommendations do not select or submit an answer', () => {
   assert.deepEqual(progress(initial()), { total: 3, answered: 0, submitted: 0, draft: 0, unanswered: 3, deferred: 0, pending: 3 });
 });
 
+test('an explicitly submitted blank form records every unanswered decision', () => {
+  const snapshot = review(initial());
+  assert.equal(snapshot.scope, 'form');
+  assert.deepEqual(snapshot.answers.map(a => a.outcome), ['not_answered', 'not_answered', 'not_answered']);
+  const saved = transition(initial(), { type: 'submit', review: snapshot });
+  assert.equal(saved.submissions.length, 1);
+  assert.deepEqual(restoreState(saved), saved);
+});
+
+test('adding or removing a question invalidates a prepared whole-form review', () => {
+  const state = initial(), snapshot = review(state);
+  for (const questions of [state.questionnaire.questions.slice(0, 2), [...state.questionnaire.questions, { ...state.questionnaire.questions[2], id: 'new-question' }]]) {
+    const questionnaire = { ...state.questionnaire, questions, navigationLabels: {} };
+    assert.throws(() => transition(transition(state, { type: 'definitions', questionnaire }), { type: 'submit', review: snapshot }), /changed/);
+  }
+});
+
 test('whole-form submission includes blanks, rejects subsets, and preserves immutable retries', () => {
   let state = edit(initial(), 'atmosphere', ['quiet'], 'First answer');
   state = edit(state, 'activities', ['open-reading'], 'PRIVATE PENDING DRAFT');
