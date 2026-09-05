@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { initialState, restoreState, transition, validateQuestionnaire } from './core.js';
 import { atomicWrite } from './storage.js';
 import { readReceipts } from './monitor.js';
+import { createSubmissionSocket } from './submission-socket.js';
 export { atomicWrite } from './storage.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -20,9 +21,13 @@ export function createWorkbenchServer({ dataDir = join(root, '.workbench'), ques
     return next;
   };
   async function commit(next) {
+    const previousIds = new Set(saved?.state.submissions.map(s => s.id));
     try { await write(statePath, `${JSON.stringify(next, null, 2)}\n`); }
     catch { throw new Error('The form could not be saved on this computer. Keep the page open and retry.'); }
     saved = next;
+    for (const submission of saved.state.submissions) {
+      if (!previousIds.has(submission.id)) server.emit('submission', structuredClone(submission));
+    }
     return saved;
   }
   async function load() {
@@ -102,5 +107,8 @@ export function createWorkbenchServer({ dataDir = join(root, '.workbench'), ques
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const server = createWorkbenchServer();
   const port = Number(process.env.PORT || 4310);
+  const signals = createSubmissionSocket(server);
+  signals.on('error', error => { console.error(`Submission socket: ${error.message}`); process.exitCode = 1; server.close(); });
+  signals.listen(Number(process.env.SIGNAL_PORT || port + 1), '127.0.0.1', () => console.log(`Submission socket: 127.0.0.1:${signals.address().port}`));
   server.listen(port, '127.0.0.1', () => console.log(`Workbench: http://127.0.0.1:${server.address().port}/`));
 }

@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
-    "check": "node --check src/core.js && node --check src/server.js && node --check public/app.js",
+    "check": "node --check src/core.js && node --check src/server.js && node --check src/storage.js && node --check src/monitor.js && node --check src/submission-socket.js && node --check public/app.js",
     "test": "node --test test/*.test.js"
   },
   "devDependencies": {
