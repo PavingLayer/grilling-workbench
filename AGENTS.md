@@ -3,8 +3,7 @@
 Before changing the workbench, read [README.md](README.md) for its current
 behavior, integration boundaries, and operating guides.
 
-Keep workbench changes in this repository. Inventor is a separate project; its
-source and interview documents are outside this project's change scope.
+Keep workbench changes in this repository.
 
 Commit every change to tracked files immediately. Use small, coherent edits and
 commit them before starting unrelated work or yielding. Preserve unrelated user
