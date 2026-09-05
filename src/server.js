@@ -1,29 +1,14 @@
 import http from 'node:http';
-import { readFile, mkdir, open, rename, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
 import { initialState, restoreState, transition, validateQuestionnaire } from './core.js';
+import { atomicWrite } from './storage.js';
+import { readReceipts } from './monitor.js';
+export { atomicWrite } from './storage.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const publicFiles = { '/': ['public/index.html', 'text/html'], '/app.js': ['public/app.js', 'text/javascript'], '/styles.css': ['public/styles.css', 'text/css'], '/core.js': ['src/core.js', 'text/javascript'] };
-
-export async function atomicWrite(path, text) {
-  await mkdir(dirname(path), { recursive: true });
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  let handle;
-  try {
-    handle = await open(temporary, 'wx', 0o600);
-    await handle.writeFile(text);
-    await handle.sync();
-    await handle.close();
-    handle = undefined;
-    await rename(temporary, path);
-  } finally {
-    if (handle) await handle.close();
-    await rm(temporary, { force: true });
-  }
-}
 
 export function createWorkbenchServer({ dataDir = join(root, '.workbench'), questionsPath = join(root, 'data/questions.json'), write = atomicWrite } = {}) {
   const statePath = join(dataDir, 'session.json');
@@ -78,6 +63,7 @@ export function createWorkbenchServer({ dataDir = join(root, '.workbench'), ques
     if (!/^(127\.0\.0\.1|localhost):\d+$/.test(host) || (req.headers.origin && req.headers.origin !== `http://${host}`)) return respond(res, 403, { error: 'This workbench accepts requests from its own local page only.' });
     const path = new URL(req.url, `http://${host}`).pathname;
     try {
+      if (path === '/api/delivery' && req.method === 'GET') return respond(res, 200, await readReceipts(dataDir));
       if (path === '/api/session' && req.method === 'GET') return respond(res, 200, envelope(await serial(load)));
       if (path === '/api/actions' && req.method === 'POST') {
         const input = await readBody(req);
