@@ -6,6 +6,10 @@ the embedded browser alongside a subscription-backed ChatGPT/Codex chat.
 Status: project setup and requirements only. Application code, storage choices,
 frameworks, and tests have not been implemented. The project name is provisional.
 
+A [first checkpoint design proposal](docs/design-proposal.md) develops the state
+model, open choices, and verification plan. It is a draft, not accepted
+requirements; no implementation choices are settled by that document.
+
 ## Project boundary
 
 This is an independent repository, not an Inventor package, feature, or worktree.
