@@ -29,6 +29,10 @@ deferral indicator. It has no separate clearing prerequisite for submission.
 **Next question** is the primary action in the fixed footer, so navigation stays
 visible while reading long answers. **Review answers** remains secondary until
 the last question. Previous-question navigation also stays in the footer.
+Use **Question N of total** above the current question to open a scrollable list
+of all questions and their statuses. The list takes no extra page space as the
+questionnaire grows. **Answer later** and **Clear answer** have separate bordered
+buttons below the answer field.
 
 **Review answers** becomes available after a draft has saved. The review starts
 with no answers selected. Choose answers to include, inspect the exact submission
