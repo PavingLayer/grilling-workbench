@@ -1,9 +1,15 @@
 ---
 name: grilling-workbench
-description: Use the workbench to present browser questionnaires and receive whole-form answers in chat. Apply when the user asks for a browser form or project instructions choose it for grilling, grill-with-docs, or wayfinder.
+description: Use whenever the agent interviews the user, including grill-me, grilling, grill-with-docs, wayfinder, requirements gathering, and decision interviews. Automatically present question rounds in the workbench and receive submitted answers in chat.
 ---
 
 # Grilling Workbench
+
+Apply this skill whenever conducting an interview, whether the interview starts
+from the user's request, another skill, or the ongoing task. Select the workbench
+before presenting the interview questions; do not require the user to request a
+browser form or the project to opt in separately. Respect an explicit user request
+for another interface.
 
 Use this as the question interface for the user's current workflow. The parent
 workflow chooses questions, interprets answers, owns decision records, and decides

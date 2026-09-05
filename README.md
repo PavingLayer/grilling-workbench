@@ -5,6 +5,10 @@ writes questions, the user submits the entire form, and a waiting socket deliver
 the saved answers back to the agent. Reasoning and clarification stay in the
 existing chat. No model API, external assets, or production dependencies.
 
+Once installed, the skill applies whenever the agent interviews the user. Calling
+an interview skill such as `grill-me` is enough; the user does not need to request
+a browser form or enable a separate project preference.
+
 **0.2.0 is an installable local CLI package.** Node.js 22 or later is required.
 The supported deployment is a browser and agent on the same computer; no public
 server or idle-chat wakeup service is included. The project name is provisional.
@@ -31,8 +35,10 @@ npx --no-install grilling-workbench install-skill
 
 The installer creates `.agents/skills/grilling-workbench` and refuses to overwrite
 an existing skill. Codex detects new skills automatically; restart it if the skill
-does not appear, then invoke `$grilling-workbench`. The package is not published to a registry yet; use the
-archive, not an unverified registry package with the same name.
+does not appear. Explicit `$grilling-workbench` invocation can verify installation;
+normal interview use should select it automatically. The package is not published
+to a registry yet; use the archive, not an unverified registry package with the
+same name.
 
 The [deployment guide](docs/deployment.md) covers non-Node projects, session
 storage, updates, shutdown, backups, and recovery. The [integration guide](docs/integration.md)

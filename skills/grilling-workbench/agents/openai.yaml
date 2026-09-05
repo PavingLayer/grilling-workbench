@@ -1,6 +1,6 @@
 interface:
   display_name: "Grilling Workbench"
-  short_description: "Browser forms for project interview rounds"
+  short_description: "Automatic forms for agent-led interviews"
   default_prompt: "Use $grilling-workbench to present the next interview round and receive my submitted answers in this chat."
 policy:
   allow_implicit_invocation: true

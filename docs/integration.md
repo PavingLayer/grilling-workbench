@@ -1,8 +1,8 @@
 # Project integration and discovery
 
 Use two separately installable parts: the executable owns local forms and socket
-delivery; the skill tells an agent when and how to use it. The project may make
-that interface a standing preference. Neither part rewrites the interview skill
+delivery; the skill applies whenever the agent interviews the user. A project
+instruction can reinforce that default. Neither part rewrites the interview skill
 or becomes the source of project decisions.
 
 ## Discovery needs installation, routing, and instructions
@@ -19,10 +19,14 @@ selected. Explicit invocation and description-based matching are supported.
 Large skill lists can shorten or omit descriptions, so put the main trigger first.
 [Official skill documentation](https://learn.chatgpt.com/docs/build-skills)
 
-The bundled [skill](../skills/grilling-workbench/SKILL.md) describes browser
-questionnaires, workbench requests, and projects that choose this interface for
-interview rounds. Its Codex metadata permits implicit invocation. Its instructions
-link to the socket protocol and question format, both copied by the installer.
+The bundled [skill](../skills/grilling-workbench/SKILL.md) triggers on the agent
+interviewing the user, including `grill-me`, `grilling`, `grill-with-docs`,
+`wayfinder`, requirements gathering, and decision interviews. The user invokes
+their normal interview workflow; they do not need to mention the workbench or a
+browser, and no separate project preference is required. The same trigger applies
+when the agent starts an interview as part of an ongoing task. Its Codex metadata
+permits implicit invocation. Its instructions link to the socket protocol and
+question format, both copied by the installer.
 Installing the CLI alone does not install the skill; installing the skill alone
 does not provide Node, the executable, browser control, or a persistent tool wait.
 
@@ -34,25 +38,29 @@ npx --no-install grilling-workbench install-skill
 
 Codex detects installed skill changes automatically; restart Codex if the new
 skill does not appear. Check its visible name and source path in the skill picker;
-avoid duplicate user/project copies of the same
-name. Explicitly invoke `$grilling-workbench` in Codex (or the host's skill picker)
-for a first trial. Automatic selection is useful but is not a deterministic
-application hook. A project instruction makes the intended preference clearer.
+avoid duplicate user/project copies of the same name. Explicit `$grilling-workbench`
+invocation can verify installation, but is not a required step in normal use.
+The intended automatic trigger is an interview, even when the user's request only
+says “grill me.” Model selection is not a deterministic application hook; verify
+that behavior in the target agent. A project instruction can reinforce the trigger.
 
-## Project preference
+## Optional project instruction
 
-When a project chooses this workflow, merge the following small section into its
-existing AGENTS.md or equivalent host instruction file. Preserve surrounding
-instructions and the tracker/domain configuration already present. Replace the
+The installed skill already defines the interview trigger. To reinforce it in a
+project, merge the following small section into the existing AGENTS.md or
+equivalent host instruction file. Preserve surrounding instructions and the
+tracker/domain configuration already present. Replace the
 command if the project uses a global executable. This repository ships the text;
 its installer does not edit another project's instructions automatically.
 
 ```markdown
 ## Question interface
 
-For project interview rounds, use the installed grilling-workbench skill at
+Whenever interviewing the user, use the installed grilling-workbench skill at
 `.agents/skills/grilling-workbench/SKILL.md` as the question interface. The command
-is `npx --no-install grilling-workbench`. Read the skill before presenting a round
+is `npx --no-install grilling-workbench`. This applies when an interview comes
+from another skill, including grill-me, or from the ongoing task; the user need
+not ask for a browser form. Read the skill before presenting a round
 and arm its socket listener before opening the form. Continue the current chat
 when the submitted snapshot arrives; no manual transfer or polling monitor.
 
@@ -63,7 +71,7 @@ the user explicitly requests it. If this host cannot keep an active tool wait,
 explain that limitation rather than claiming automatic delivery.
 ```
 
-This opt-in instruction selects presentation. It does not grant permission for
+This instruction reinforces presentation. It does not grant permission for
 issue creation, publishing, execution, or starting a different interview workflow.
 
 ## Alongside Matt Pocock's skills
@@ -93,7 +101,10 @@ resolution. [Wayfinder source](https://github.com/mattpocock/skills/blob/3cca18b
 
 Upstream setup writes tracker/domain guidance through the project's existing
 instruction file. Add the workbench preference alongside it; do not overwrite
-that configuration or patch installed upstream skill bodies. [Setup source](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/setup-matt-pocock-skills/SKILL.md)
+that configuration or patch installed upstream skill bodies.
+[Setup source](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/setup-matt-pocock-skills/SKILL.md)
+The extra project instruction is optional, not a prerequisite for the workbench's
+interview trigger.
 
 A `not_answered` item may leave a prerequisite open. The agent records that outcome
 and discusses any necessary next step in chat; it does not infer agreement, choose
@@ -131,9 +142,12 @@ installation. Skill selection and host event delivery need a real host trial:
    ready before the browser opens.
 3. Answer one question, leave the other blank, and submit once. The agent should
    receive both outcomes and respond without another chat message or paste.
-4. Test an implicit request such as “Use the workbench for the next design round.”
-   Under the project preference, also test “Grill me about checkout.” Confirm the
-   active interview skill still owns reasoning and records.
+4. Without the optional project instruction, test “Grill me about checkout” and
+   “Continue the interview.” Also test a task where the agent decides it needs an
+   interview to gather requirements. The workbench should be selected before
+   questions are presented, without asking whether the user wants a browser form.
+   Confirm the active interview skill still owns reasoning and records. Repeat
+   with the project instruction to verify that route too.
 5. Test boundaries: “Explain this option” should stay in chat; “Use ordinary chat
    questions this time” should respect the user's interface choice.
 6. Interrupt/reconnect the listener before receipt; confirm one saved snapshot
