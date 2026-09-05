@@ -144,6 +144,9 @@ dialog::backdrop { background: #111c2470; }
 .review-choice label { line-height: 1.5; font-size: .875rem; cursor: pointer; }
 .review-choice strong { display: block; margin-bottom: 5px; }
 .review-choice span { color: var(--muted); white-space: pre-wrap; }
+.review-answer { border-bottom: 1px solid var(--line); padding: 0 0 20px; margin-bottom: 20px; }
+.review-answer p { margin: 9px 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.submission-details summary { cursor: pointer; font-size: .875rem; color: var(--muted); }
 .export-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .875rem; line-height: 1.6; background: #f6f8f8; border: 1px solid var(--line); padding: 16px; border-radius: 5px; max-height: 340px; overflow: auto; margin-top: 16px; }
 .pending-list { font-size: .875rem; color: var(--muted); line-height: 1.6; margin-top: 16px; }
 .success-symbol { height: 42px; width: 42px; display: grid; place-items: center; background: #eaf5ef; color: var(--green); border-radius: 50%; font-size: 1.5rem; margin-bottom: 14px; }

@@ -1,11 +1,11 @@
-import { transition, draftFor, questionById, hasAnswer, isStale, statusFor, progress, canSubmit, makeReview, formatSubmission } from '/core.js';
+import { transition, draftFor, questionById, hasAnswer, isStale, statusFor, progress, canSubmit, formSubmitted, makeReview, formatSubmission } from '/core.js';
 
 const app = document.querySelector('#app');
 const dialog = document.querySelector('#review-dialog');
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const capital = value => value[0].toUpperCase() + value.slice(1);
 let state, version, currentId, running = false, error = '', conflict = false, connectionWarning = '';
-let pending = [], review = null, reviewIds = [], shownSubmission = null;
+let pending = [], review = null, shownSubmission = null, receivedIds = new Set();
 let toastTimer, modalMode = '', refreshing = false, sidebarCollapsed = false;
 const narrowViewport = matchMedia('(max-width: 640px)');
 const iconPaths = {
@@ -41,8 +41,7 @@ function saveText() {
 }
 
 function badge(id) {
-  const status = statusFor(state, id);
-  return `<span class="badge ${status}">${capital(status)}</span>${state.drafts[id]?.deferred ? '<span class="badge deferred">Deferred</span>' : ''}`;
+  return `<span class="badge">${hasAnswer(state.drafts[id]) ? 'Answered' : 'Not answered'}</span>`;
 }
 
 function renderChrome() {
@@ -53,11 +52,12 @@ function renderChrome() {
   document.querySelector('#session-title').textContent = state.questionnaire.title;
   document.querySelector('#session-title').title = state.questionnaire.description;
   document.querySelector('#demo-label').hidden = !state.questionnaire.id.includes('demo');
-  document.querySelector('#progress-label').innerHTML = `<strong>${stats.submitted}</strong> submitted`;
+  document.querySelector('#progress-label').innerHTML = `<strong>${stats.answered} of ${stats.total}</strong> answered`;
   const meter = document.querySelector('progress');
-  meter.max = stats.total; meter.value = stats.submitted;
-  document.querySelector('#footer-status').textContent = `${stats.pending} pending`;
-  document.querySelector('#compact-progress').textContent = `${stats.submitted} submitted · ${stats.pending} pending`;
+  meter.max = stats.total; meter.value = stats.answered;
+  meter.setAttribute('aria-label', 'Answered questions');
+  document.querySelector('#footer-status').textContent = formSubmitted(state) ? 'Form submitted' : `${stats.total - stats.answered} not answered`;
+  document.querySelector('#compact-progress').textContent = `${stats.answered} of ${stats.total} answered · ${formSubmitted(state) ? 'Form submitted' : `${stats.total - stats.answered} not answered`}`;
   const sidebar = document.querySelector('#sidebar-questions');
   const list = questionItems();
   if (sidebar.innerHTML !== list) { const scroll = sidebar.scrollTop; sidebar.innerHTML = list; sidebar.scrollTop = scroll; }
@@ -65,7 +65,7 @@ function renderChrome() {
   document.querySelector('[data-action="clear"]').disabled = !hasAnswer(draftFor(state, currentId));
   document.querySelector('#history-button').textContent = `Submissions (${state.submissions.length})`;
   document.querySelector('#history-button').hidden = !state.submissions.length;
-  document.querySelector('#open-review').disabled = !state.questionnaire.questions.some(q => canSubmit(state, q.id)) || Boolean(pending.length || error || connectionWarning);
+  document.querySelector('#open-review').disabled = Boolean(pending.length || error || connectionWarning);
   const warning = document.querySelector('#save-warning');
   warning.hidden = !error && !connectionWarning;
   warning.innerHTML = warning.hidden ? '' : `<p>${escape(error || connectionWarning)} Your work in this tab is retained. Unsaved changes will be lost if you close or reload it.</p><button class="button small" data-action="${conflict ? 'load-saved' : 'retry'}">${conflict ? 'Load saved version…' : 'Retry saving'}</button><button class="button small" data-action="recover">Download recovery copy</button>`;
@@ -94,8 +94,8 @@ function render() {
     <article class="question-sheet" id="question" aria-labelledby="question-title"><div class="question-meta"><span class="question-position">Question ${index + 1} of ${state.questionnaire.questions.length}</span><button class="button small question-selector" id="question-selector" data-action="questions" aria-haspopup="dialog" aria-controls="review-dialog">Question ${index + 1} of ${state.questionnaire.questions.length} <span aria-hidden="true">▾</span></button><span id="question-badges"></span></div><h1 id="question-title" tabindex="-1">${escape(q.title)}</h1><p class="question-context">${escape(q.context)}</p>
     ${stale ? `<div class="alert"><p><strong>This question was updated.</strong> Your earlier answer is kept below. ${canAdopt ? 'Review the new wording, then keep or edit your answer.' : 'An earlier choice is no longer available. Choose a new answer to continue.'}</p><details><summary>Earlier question and answer</summary><div class="old-answer">${escape(oldAnswer(draft))}</div></details>${canAdopt ? '<button class="button small" data-action="adopt">Keep my answer with this wording</button>' : ''}</div>` : ''}
     ${q.type !== 'text' ? `<p class="answer-hint">${q.type === 'single' ? 'Choose one, or write your own answer below.' : 'Choose any that apply, or write your own answer below.'}</p><fieldset class="options" aria-labelledby="question-title">${q.options.map(o => `<label class="option ${draft.optionIds.includes(o.id) ? 'selected' : ''}" id="option-${escape(q.id)}-${escape(o.id)}"><span class="option-top"><input type="${q.type === 'single' ? 'radio' : 'checkbox'}" name="answer-option" value="${escape(o.id)}" ${draft.optionIds.includes(o.id) ? 'checked' : ''} aria-labelledby="label-${escape(q.id)}-${escape(o.id)}"><span class="option-title" id="label-${escape(q.id)}-${escape(o.id)}">${escape(o.label)}</span>${o.recommended ? '<span class="badge recommended">Recommended</span>' : ''}</span><div class="option-body"><p class="option-description">${escape(o.description)}</p><div class="tradeoffs"><p><strong class="offers">${icon('check')} Offers</strong><span>${escape(o.benefit)}</span></p><p><strong class="tradeoff">${icon('balance')} Trade-off</strong><span>${escape(o.tradeoff)}</span></p></div></div></label>`).join('')}</fieldset>` : ''}
-    <label for="answer-text" class="field-label">${q.type === 'text' ? 'Your answer' : 'Your own answer or a note <span class="optional">Optional</span>'}</label><textarea id="answer-text" maxlength="20000" rows="${q.type === 'text' ? 7 : 3}">${escape(draft.text)}</textarea>
-    <div class="question-actions"><button class="button" data-action="defer">${icon('clock')}${draft.deferred ? 'Resume question' : 'Answer later'}</button><button class="button" data-action="clear" ${hasAnswer(draft) ? '' : 'disabled'}>${icon('clear')}Clear answer</button></div></article></div></main>
+    <label for="answer-text" class="field-label">${q.type === 'text' ? 'Your answer' : 'Your answer <span class="optional">In your own words</span>'}</label><textarea id="answer-text" maxlength="20000" rows="${q.type === 'text' ? 7 : 3}">${escape(draft.text)}</textarea>
+    <div class="question-actions"><button class="button" data-action="defer">${icon('clock')}Answer later</button><button class="button" data-action="clear" ${hasAnswer(draft) ? '' : 'disabled'}>${icon('clear')}Clear answer</button></div></article></div></main>
     </div><footer class="footer-bar"><nav class="footer-buttons ${index === state.questionnaire.questions.length - 1 ? 'last-question' : ''}" aria-label="Question navigation"><button class="button previous-question" ${index > 0 ? `data-go="${escape(state.questionnaire.questions[index - 1].id)}"` : 'disabled'} aria-label="Previous question">${icon('left')}<span>Previous</span></button><button class="button ${index === state.questionnaire.questions.length - 1 ? 'primary' : ''}" id="open-review" data-action="review">${icon('list')}Review answers</button>${index < state.questionnaire.questions.length - 1 ? `<button class="button primary" data-go="${escape(state.questionnaire.questions[index + 1].id)}">Next question ${icon('right')}</button>` : ''}</nav></footer>`;
   renderChrome();
   document.querySelector('.main').scrollTop = mainScroll;
@@ -165,7 +165,11 @@ app.addEventListener('click', event => {
   const go = event.target.closest('[data-go]');
   if (go) return navigate(go.dataset.go);
   const action = event.target.closest('[data-action]')?.dataset.action;
-  if (action === 'defer') stage({ type: 'defer', questionId: currentId, deferred: !draftFor(state, currentId).deferred });
+  if (action === 'defer') {
+    const index = state.questionnaire.questions.findIndex(q => q.id === currentId);
+    if (index < state.questionnaire.questions.length - 1) navigate(state.questionnaire.questions[index + 1].id);
+    else showQuestions();
+  }
   if (action === 'clear') stage({ type: 'edit', questionId: currentId, answer: { optionIds: [], text: '' } });
   if (action === 'adopt') stage({ type: 'adopt', questionId: currentId });
   if (action === 'review') openReview();
@@ -188,16 +192,16 @@ const dialogHead = (title, description = '') => `<div class="dialog-head"><div><
 
 function showQuestions() {
   const stats = progress(state);
-  openDialog(`${dialogHead('Questions', `${stats.submitted} submitted · ${stats.pending} pending`)}<nav class="question-list" aria-label="All questions">${questionItems()}</nav>${state.submissions.length ? `<div class="dialog-foot"><button class="button" data-modal="history">Submissions (${state.submissions.length})</button></div>` : ''}`, 'questions');
+  openDialog(`${dialogHead('Questions', `${stats.answered} of ${stats.total} answered · ${stats.total - stats.answered} not answered`)}<nav class="question-list" aria-label="All questions">${questionItems()}</nav>${state.submissions.length ? `<div class="dialog-foot"><button class="button" data-modal="history">Submissions (${state.submissions.length})</button></div>` : ''}`, 'questions');
   dialog.querySelector('[aria-current="step"]')?.scrollIntoView({ block: 'nearest' });
 }
 
 function questionItems() {
   return state.questionnaire.questions.map((q, index) => {
     const status = statusFor(state, q.id);
-    const deferred = state.drafts[q.id]?.deferred;
+    const answered = hasAnswer(state.drafts[q.id]);
     const updated = isStale(state, q.id) && hasAnswer(state.drafts[q.id]);
-    return `<button class="nav-item ${q.id === currentId ? 'active' : ''} ${status} ${deferred ? 'deferred' : ''}" data-go="${escape(q.id)}" title="${escape(q.title)}" ${q.id === currentId ? 'aria-current="step"' : ''}><span class="nav-dot" aria-hidden="true">${status === 'submitted' ? '✓' : ''}</span><span class="nav-number">${String(index + 1).padStart(2, '0')}</span><span class="nav-text"><span class="nav-title">${escape(state.questionnaire.navigationLabels?.[q.id] || q.title)}</span><span class="nav-status">${deferred ? 'Deferred · ' : ''}${capital(status)}${updated ? ' · Updated' : ''}</span></span></button>`;
+    return `<button class="nav-item ${q.id === currentId ? 'active' : ''} ${status} " data-go="${escape(q.id)}" title="${escape(q.title)}" ${q.id === currentId ? 'aria-current="step"' : ''}><span class="nav-dot" aria-hidden="true">${status === 'submitted' ? '✓' : ''}</span><span class="nav-number">${String(index + 1).padStart(2, '0')}</span><span class="nav-text"><span class="nav-title">${escape(state.questionnaire.navigationLabels?.[q.id] || q.title)}</span><span class="nav-status">${answered ? 'Answered' : 'Not answered'}${updated ? ' · Updated' : ''}</span></span></button>`;
   }).join('');
 }
 
@@ -217,48 +221,54 @@ narrowViewport.addEventListener('change', updateSidebarToggle);
 updateSidebarToggle();
 
 function openReview() {
-  reviewIds = []; review = null;
-  openDialog(`${dialogHead('Review your answers', 'Choose exactly which answers to submit. Everything else stays pending.')}<div class="dialog-body"><div id="review-choices">${state.questionnaire.questions.filter(q => canSubmit(state, q.id)).map(q => { const draft = draftFor(state, q.id); return `<div class="review-choice"><input type="checkbox" id="review-${escape(q.id)}" data-review="${escape(q.id)}"><label for="review-${escape(q.id)}"><strong>${escape(q.title)}</strong><span>${escape(draft.optionIds.map(id => q.options.find(o => o.id === id).label).join(' · '))}${draft.text ? `${draft.optionIds.length ? '\n' : ''}${escape(draft.text)}` : ''}</span></label></div>`; }).join('')}</div><div id="review-preview"></div></div><div class="dialog-foot"><button class="button" data-modal="close">Keep editing</button><button class="button primary" id="submit-button" data-modal="submit" disabled>Submit selected answers</button></div>`, 'review');
-  updateReview();
-}
-
-function updateReview() {
-  review = reviewIds.length ? makeReview(state, reviewIds, crypto.randomUUID(), new Date().toISOString()) : null;
-  const pendingQuestions = state.questionnaire.questions.filter(q => !reviewIds.includes(q.id) && statusFor(state, q.id) !== 'submitted');
-  document.querySelector('#review-preview').innerHTML = `${review ? `<h3 class="field-label">Exact submission</h3><pre class="export-text">${escape(formatSubmission(review))}</pre>` : '<p class="muted">No answers selected.</p>'}<p class="pending-list"><strong>Remaining pending (${pendingQuestions.length})</strong><br>${pendingQuestions.map(q => escape(q.title)).join('<br>') || 'None'}</p>`;
-  const button = document.querySelector('#submit-button');
-  button.disabled = !review || Boolean(pending.length || error);
-  button.textContent = review ? `Submit ${reviewIds.length} answer${reviewIds.length === 1 ? '' : 's'}` : 'Submit selected answers';
+  review = canSubmit(state) ? makeReview(state, crypto.randomUUID(), new Date().toISOString()) : null;
+  const entries = state.questionnaire.questions.map(q => {
+    const draft = draftFor(state, q.id);
+    const answer = draft.optionIds.map(id => draft.question.options.find(o => o.id === id)?.label).filter(Boolean).join(' · ');
+    return `<section class="review-answer"><h3>${escape(q.title)}</h3><p>${hasAnswer(draft) ? escape([answer, draft.text].filter(Boolean).join('\n')) : '<span class="badge">Not answered</span>'}</p>${isStale(state, q.id) && hasAnswer(draft) ? '<p class="muted">Review the updated wording before submitting.</p>' : ''}<button class="button small" data-go="${escape(q.id)}">Edit answer</button></section>`;
+  }).join('');
+  openDialog(`${dialogHead('Review form', 'Submit this entire set of questions. Anything left blank will be reported to the agent as not answered.')}<div class="dialog-body">${entries}${review ? `<details class="submission-details"><summary>Exact form submission</summary><pre class="export-text">${escape(formatSubmission(review))}</pre></details>` : '<p class="alert">An answered question has changed. Review its updated wording before submitting.</p>'}</div><div class="dialog-foot"><button class="button" data-modal="close">Keep editing</button><button class="button primary" id="submit-button" data-modal="submit" ${!review || pending.length || error ? 'disabled' : ''}>Submit form</button></div>`, 'review');
 }
 
 function submitReview() {
   if (!review || pending.length || error) return;
   shownSubmission = structuredClone(review);
-  openDialog(`${dialogHead('Saving your submission')}<div class="dialog-body"><p role="status">Saving the answers you confirmed…</p></div>`, 'saving');
+  openDialog(`${dialogHead('Saving your submission')}<div class="dialog-body"><p role="status">Saving your whole form…</p></div>`, 'saving');
   stage({ type: 'submit', review });
 }
 
 function renderSaveFailure() {
-  openDialog(`${dialogHead('Your submission is not saved yet')}<div class="dialog-body"><p>Your confirmed answers are retained in this tab. ${escape(error)}</p><p>Keep this page open or download a recovery copy before leaving.</p><button class="button" data-modal="recover">Download recovery copy</button></div><div class="dialog-foot"><button class="button" data-modal="close">Back to form</button>${!conflict ? '<button class="button primary" data-modal="retry">Retry saving</button>' : ''}</div>`, 'save-failed');
+  openDialog(`${dialogHead('Your form is not saved yet')}<div class="dialog-body"><p>Your confirmed form is retained in this tab. ${escape(error)}</p><p>Keep this page open or download a recovery copy before leaving.</p><button class="button" data-modal="recover">Download recovery copy</button></div><div class="dialog-foot"><button class="button" data-modal="close">Back to form</button>${!conflict ? '<button class="button primary" data-modal="retry">Retry saving</button>' : ''}</div>`, 'save-failed');
+}
+
+function renderReceipt() {
+  const status = document.querySelector('#delivery-status');
+  if (status && shownSubmission) status.textContent = receivedIds.has(shownSubmission.id) ? 'Received by the agent in chat.' : 'Saved. Waiting for the agent to receive this form.';
+}
+
+async function refreshReceipt() {
+  if (!state?.submissions.length) return;
+  try {
+    const receipts = await request('/api/delivery');
+    receivedIds = new Set(receipts.received.map(r => r.submissionId));
+    renderReceipt();
+  } catch {
+    const status = document.querySelector('#delivery-status');
+    if (status) status.textContent = 'Your form is saved. Agent receipt could not be checked yet.';
+  }
 }
 
 function showSubmission(submission) {
   shownSubmission = submission;
-  openDialog(`${dialogHead(`${submission.answers.length} answer${submission.answers.length === 1 ? '' : 's'} submitted`, 'Saved on this computer. Copy these answers into your existing chat when you are ready.')}<div class="dialog-body"><div class="success-symbol" aria-hidden="true">✓</div><p>Only the answers below are included.</p><label class="field-label" for="handoff-text">Submission for chat</label><textarea id="handoff-text" class="export-text" readonly rows="11">${escape(formatSubmission(submission))}</textarea><p class="pending-list" id="copy-status" role="status">Copying does not send a message to chat.</p></div><div class="dialog-foot"><button class="button" data-modal="close">Continue answering</button><button class="button primary" data-modal="copy">Copy for chat</button></div>`, 'submission');
-  render();
+  openDialog(`${dialogHead('Form submitted', 'Your entire form is saved. You can continue in chat without copying or pasting anything.')}<div class="dialog-body"><div class="success-symbol" aria-hidden="true">✓</div><p id="delivery-status" role="status"></p><details class="submission-details"><summary>View submitted form</summary><pre class="export-text">${escape(formatSubmission(submission))}</pre></details></div><div class="dialog-foot"><button class="button primary" data-modal="close">Back to form</button></div>`, 'submission');
+  render(); renderReceipt(); void refreshReceipt();
 }
 
 function showHistory() {
   const saved = state.submissions.filter(s => !pending.some(item => item.action.type === 'submit' && item.action.review.id === s.id));
-  openDialog(`${dialogHead('Submitted answers', 'Earlier submissions keep their original questions and answers.')}<div class="dialog-body">${saved.map(s => `<button class="history-item" data-submission="${escape(s.id)}"><strong>${s.answers.length} answer${s.answers.length === 1 ? '' : 's'} · ${escape(new Date(s.createdAt).toLocaleString())}</strong><span>${s.answers.map(a => escape(a.question.title)).join('<br>')}</span></button>`).join('') || '<p>No saved submissions yet.</p>'}</div>`, 'history');
+  openDialog(`${dialogHead('Submitted answers', 'Earlier submissions keep their original questions and answers.')}<div class="dialog-body">${saved.map(s => `<button class="history-item" data-submission="${escape(s.id)}"><strong>Form · ${escape(new Date(s.createdAt).toLocaleString())}</strong><span>${s.answers.map(a => escape(a.question.title)).join('<br>')}</span></button>`).join('') || '<p>No saved submissions yet.</p>'}</div>`, 'history');
 }
 
-dialog.addEventListener('change', event => {
-  if (event.target.dataset.review) {
-    reviewIds = [...dialog.querySelectorAll('[data-review]:checked')].map(input => input.dataset.review);
-    updateReview();
-  }
-});
 dialog.addEventListener('click', async event => {
   const go = event.target.closest('[data-go]');
   if (go) { dialog.close(); navigate(go.dataset.go); return; }
@@ -270,20 +280,13 @@ dialog.addEventListener('click', async event => {
   if (action === 'submit') submitReview();
   if (action === 'recover') downloadRecovery();
   if (action === 'retry') { modalMode = 'saving'; retry(); }
-  if (action === 'copy') {
-    try {
-      await navigator.clipboard.writeText(formatSubmission(shownSubmission));
-      document.querySelector('#copy-status').textContent = 'Copied. Paste into your chat to share these answers.';
-    } catch {
-      const field = document.querySelector('#handoff-text'); field.focus(); field.select();
-      document.querySelector('#copy-status').textContent = 'Clipboard access failed. The text is selected; copy it manually. Your submission is still saved.';
-    }
-  }
+
 });
 dialog.addEventListener('close', () => {
   const wasQuestionPicker = modalMode === 'questions';
   modalMode = '';
-  const returnTarget = wasQuestionPicker ? document.querySelector('#question-selector') : document.querySelector('#open-review:not(:disabled)') || document.querySelector('#history-button:not([hidden])') || document.querySelector('#answer-text');
+  const candidates = wasQuestionPicker ? ['#question-selector', '#toggle-sidebar'] : ['#open-review:not(:disabled)', '#history-button:not([hidden])', '#toggle-sidebar'];
+  const returnTarget = candidates.map(selector => document.querySelector(selector)).find(element => element?.getClientRects().length);
   returnTarget?.focus({ preventScroll: true });
 });
 
@@ -310,6 +313,7 @@ async function loadSaved() {
 }
 
 async function refresh() {
+  void refreshReceipt();
   if (running || pending.length || conflict || refreshing) return;
   refreshing = true;
   try {
