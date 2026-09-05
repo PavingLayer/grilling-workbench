@@ -55,7 +55,7 @@ function renderChrome() {
 }
 
 function oldAnswer(draft) {
-  return `${draft.question.title}\n\n${draft.optionIds.map(id => { const o = draft.question.options.find(item => item.id === id); return `${o.label}\n${o.description}\nBenefit: ${o.benefit}\nTrade-off: ${o.tradeoff}`; }).join('\n\n')}${draft.text ? `\n\n${draft.text}` : ''}`;
+  return `${draft.question.title}\n${draft.question.context}\n\n${draft.optionIds.map(id => { const o = draft.question.options.find(item => item.id === id); return `${o.label}\n${o.description}\nBenefit: ${o.benefit}\nTrade-off: ${o.tradeoff}`; }).join('\n\n')}${draft.text ? `\n\n${draft.text}` : ''}`;
 }
 
 function render() {
@@ -257,7 +257,7 @@ async function refresh() {
   try {
     const result = await request('/api/session');
     // A poll begun before typing must never replace a newly staged answer.
-    if (running || pending.length || conflict) return;
+    if (running || pending.length || conflict || result.version < version) return;
     connectionWarning = '';
     if (result.version !== version) {
       state = result.state; version = result.version;
