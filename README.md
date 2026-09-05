@@ -80,8 +80,11 @@ record the visual choice.
   Navigation and answering later retain existing draft choices and text.
 - Start and remain a draft until the user explicitly submits the whole form.
   Recommendations, navigation, and native annotations never submit decisions.
-- Review the complete form without per-answer inclusion controls. Blank answers
-  are allowed and must be explicitly represented as not answered in the snapshot.
+- Submit the complete form directly in one click, with no review screen or extra
+  confirmation step. Users can navigate freely to revisit answers before submitting.
+  Blank answers are allowed and explicitly represented as not answered in the snapshot.
+- Keep Submit stable and usable during draft autosaves. Submission captures the
+  latest in-memory answers and saves pending edits before the complete form.
 - Automatically deliver the submitted form to the waiting agent in the same chat,
   including all not-answered decisions. No further user click or paste is required.
 - Give questions, options, and submissions stable IDs. Retain immutable copies of
@@ -101,8 +104,8 @@ Candidate properties to refine with the state model:
 - Initial state and recommendations never imply user consent.
 - Editing, annotation/clarification activity, navigation, and reload do not create
   submitted decisions.
-- Every submission covers the entire reviewed question set, including blanks;
-  the server rejects a subset or a review prepared before the question set changed.
+- Every submission covers the entire question set at the submit click, including blanks;
+  the server rejects a subset or a snapshot prepared before the question set changed.
 - Failed persistence or handoff preserves recoverable drafts and reports failure.
 - Repeated delivery of the same submission cannot create duplicate decisions.
 - Submitted snapshots remain attributable to the exact question/option version;

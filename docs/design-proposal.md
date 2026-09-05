@@ -2,7 +2,7 @@
 
 > Historical proposal: the user subsequently selected UI direction B and required
 > whole-form submission, explicit “Not answered” outcomes for blanks, and immediate
-> socket delivery to the waiting chat agent. Sections below describing partial
+> socket delivery to the waiting chat agent, with no review or extra confirmation screen. Sections below describing partial
 > submission or manual copying are superseded. Follow [README.md](../README.md),
 > [the prototype guide](prototype.md), and [the monitor protocol](agent-monitor.md).
 

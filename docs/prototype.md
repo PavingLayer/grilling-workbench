@@ -31,15 +31,18 @@ blank. **Answer later** moves to the next question while retaining the current
 fields. It does not send anything or create a special communication state.
 
 The dark sidebar shows concise question labels and scrolls independently of the
-form. **Next question** stays primary in the persistent footer. **Review form** is
-secondary until the final question. Below 641 pixels, or when the sidebar is
+form. **Next question** stays primary in the persistent footer. **Submit form** is
+secondary until the final question, where it becomes the primary action. Below 641 pixels, or when the sidebar is
 collapsed, **Question N of total** opens a scrollable question picker. Answer later
 and Clear answer are distinct bordered buttons. Clear responds immediately to typing.
 
-**Review form** lists every question, with its answer or **Not answered**. There
-are no inclusion checkboxes and no partial submissions. **Submit form** confirms
-the entire set, including blank fields as explicit not-answered outcomes. Merely
-leaving a field blank while editing does not communicate a decision.
+**Submit form** sends the entire set immediately, including blank fields as
+explicit not-answered outcomes. There is no review screen or additional
+confirmation. Revisit answers through ordinary navigation before submitting.
+The button stays enabled during draft autosaves: a click captures the latest
+answers, then the save queue persists pending edits before the submission.
+It becomes unavailable only for an already queued submission or a version
+conflict. Merely leaving a field blank while editing does not communicate a decision.
 
 After the server durably saves the immutable form snapshot, it emits the complete
 submission over the waiting socket. The agent reads it and acknowledges receipt.
@@ -127,15 +130,19 @@ Embedded-browser checks verified:
 - Narrow layouts at 390×844 and 320×740: scrollable question picker, visible footer
   actions, no horizontal overflow, draft persistence after reload, and accessible
   submission history with the sidebar hidden.
-- Whole-form review with one answer and two blanks; the actual TCP listener received
+- Whole-form submission with one answer and two blanks; the actual TCP listener received
   all three questions and the two `not_answered` outcomes immediately on submission.
   Recording the receipt changed the page to “Received by the agent in chat.”
+- Direct submission was tested with two successive text edits and deliberately
+  delayed draft saves. Submit remained enabled while the status read “Saving…”,
+  and one click sent the latest text plus the two not-answered outcomes over TCP
+  without a review screen.
 - The original preview's social option draft survived the redesign. QA used separate
   sessions and did not submit that user's draft.
 
 Earlier browser checks also verified definition refresh while retaining draft
-text, recoverable save failures, and server restart. Their earlier partial-submit
-and clipboard scenarios are superseded by whole-form socket delivery.
+text, recoverable save failures, and server restart. Their earlier review, partial-submit,
+and clipboard scenarios are superseded by direct whole-form socket delivery.
 
 The user's native footer annotation on this prototype arrived in chat and drove
 the navigation fix. A dedicated option-targeted clarification round trip and
