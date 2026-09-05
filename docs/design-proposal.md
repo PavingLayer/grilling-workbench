@@ -4,6 +4,16 @@ Status: draft for discussion, not accepted requirements. No application or tests
 have been implemented. The [README](../README.md) remains the source of agreed
 requirements. Only explicit user decisions can settle the choices below.
 
+## Agreed clarification boundary
+
+The user clarified that this application is a simple question-answering UI.
+Clarification happens through the host's native Annotate or Quick Annotate
+features and the existing chat. The agent explains or edits question definitions;
+the form refreshes those definitions while preserving draft work. The app does
+not track clarification, mirror comments, or require the user to mark a doubt
+resolved before submitting an answer. The state proposal below follows that
+decision; its remaining choices are still proposals.
+
 ## Separate working answers from submitted decisions
 
 Proposed state has three independent parts:
@@ -11,29 +21,26 @@ Proposed state has three independent parts:
 | Part | Contents | Purpose |
 | --- | --- | --- |
 | Question definition | Stable question and option IDs, question revision, complete wording, descriptions, trade-offs, recommendation label | Identify exactly what the user saw. |
-| Working answer | Draft choice and/or text, draft revision, explicit clarification markers, explicit deferral marker | Retain work while the user asks questions or postpones a decision. |
+| Working answer | Draft choice and/or text, draft revision, explicit deferral state | Retain work while answering or postponing a decision. |
 | Submission | Stable submission ID, immutable copies of the reviewed question definitions and selected answers | Preserve precisely what the user explicitly submitted. |
 
 The supported answer types (single choice, multiple choice, free text, or a
 combination) still need a decision. The state design should not silently limit
 all questions to one selected option.
 
-Clarification markers may target a whole question or a specific option revision.
-They are local markers the user explicitly creates and clears. Browser comments
-are host-owned and are not treated as these markers or as answer edits.
-
-A working answer can have a draft, clarification markers, and a deferral marker
-at the same time. Clearing a marker should preserve the draft. A prior submission
-remains historical evidence if the user later edits their working answer.
+A working answer can have a draft and be deferred at the same time. Changing
+deferral state should preserve the draft. A prior submission remains historical
+evidence if the user later edits their working answer. There is no clarification
+field or transition.
 
 Proposed presentation:
 
 - Show an answer indicator: unanswered, draft, or submitted for the current
   question revision and answer content.
-- Show clarification and deferral as additional visible badges.
+- Show deferral alongside the retained draft.
 - Show a later edit as a draft with a link to the earlier submission.
 - Count current submitted questions once. Pending is the remaining questions;
-  counts for drafts, clarification, and deferral may overlap and are labeled as
+  counts for drafts and deferral may overlap and are labeled as
   such. Seeing a question is never answering it.
 
 These are proposed display rules, including the definition of pending. They are
@@ -45,8 +52,9 @@ Proposed sequence:
 
 1. The user drafts answers without submitting anything.
 2. The user explicitly chooses which answers to include in a review. The review
-   starts with no answers selected. Questions with unresolved clarification or
-   deferral markers remain pending until the user explicitly clears the markers.
+   starts with no answers selected. Answers not included remain pending. There
+   is no separate marker-clearing step: explicitly submitting a deferred answer
+   ends its current deferral. Native annotations have no effect on eligibility.
 3. Review shows the exact selected question revisions and answer contents,
    including user text. It also names the questions left pending.
 4. A change to an included draft or its question definition invalidates the
@@ -73,7 +81,7 @@ as an automatic host guarantee.
 | Topic | Proposed first checkpoint choice | Trade-off / alternative | Status |
 | --- | --- | --- | --- |
 | Storage | A small local server saves runtime files inside this repository, excluded from Git | Survives browser-data clearing and supports inspection and backup; requires server lifecycle and reliable file writes. Browser storage is simpler but tied to the browser profile and app origin. | Asked; no answer recorded |
-| Question input | A versioned local JSON document that chat can prepare and the workbench validates | Easy to inspect and test; less convenient to author directly than Markdown. Exact schema and import/update interaction remain open. | Proposed only |
+| Question input | A versioned local JSON document that the agent can edit and the workbench validates | Definition edits refresh the form as agreed; JSON is a proposed format. Exact schema and refresh mechanism remain open. | Format proposed only |
 | Chat handoff | Copy a human-readable submission containing stable IDs and exact submitted decisions; user pastes it into the existing chat | Small integration surface, but copying does not prove delivery or acceptance. A saved submission file that chat reads is an alternative. | Proposed only |
 | Changed questions | Preserve history and the old draft, show the change, and require explicit reconfirmation against the new version | Avoids treating an answer to old wording as consent to new wording; adds a review step. Migration details remain open. | Proposed only |
 | Answer types | Support the types needed by the initial interview examples | Needs explicit examples before constraining the schema. | Open |
@@ -89,7 +97,7 @@ action and returns new state plus requested effects. It performs no browser,
 filesystem, clock, random-ID, clipboard, or model calls. IDs and times are inputs.
 Adapters execute effects and report success or failure with operation IDs.
 
-Actions cover draft edits, marker changes, review selection, confirmation,
+Actions cover draft edits, deferral changes, review selection, confirmation,
 definition updates, persistence results, handoff results, and restore. Navigation
 and browser annotation activity cannot invoke confirmation as a side effect.
 An old save acknowledgement cannot mark a newer edit saved. Restore validates
@@ -106,12 +114,12 @@ failing sequences so failures can be reproduced.
 | --- | --- |
 | No implicit consent | Any sequence without explicit confirmation produces no new submitted decisions. |
 | Partial submission isolation | Confirming question A changes neither B's working answer nor B's submission history. |
-| Draft retention | Marking or clearing clarification or deferral preserves answer contents. |
+| Draft retention | Changing deferral state or refreshing unchanged question definitions preserves answer contents. |
 | Exact review | Editing an included answer or definition after review prevents confirming the stale review. |
 | Immutable attribution | Editing or replacing a question never changes an existing submitted snapshot. |
 | Idempotent local submission | Repeated confirmation or handoff retry for the same submission creates no extra local decision. |
 | Honest persistence | A failed write or stale acknowledgement cannot report the current state as saved. |
-| Restore consistency | A successful persisted-state round trip preserves drafts, markers, snapshots, and derived progress. |
+| Restore consistency | A successful persisted-state round trip preserves drafts, deferral state, snapshots, and derived progress. |
 | Honest progress | Display counts agree with independently derived state after every supported action. |
 
 Persistence integration tests should exercise interrupted writes, corrupt input,
@@ -131,9 +139,13 @@ select nothing.
 2. Use the host's annotation mode to comment on one of A's option descriptions.
    Verify that the comment identifies that option, not merely the whole page.
 3. Share the comment in this existing chat and clarify it without submitting an
-   answer. The comment must come from the user; do not fabricate user intent.
+   answer or changing any form status. The agent can explain in chat or edit a
+   question definition. The comment must come from the user; do not fabricate
+   user intent.
 4. Return to the same questionnaire, navigate, and reload. Verify the retained
-   draft and markers; no answer has been submitted.
+   draft; no answer has been submitted. Also exercise an agent definition edit
+   and verify the page refreshes with the new content while retaining draft work,
+   subject to the changed-question policy once that policy is decided.
 5. Explicitly review and submit only A. Verify the precise snapshot and handoff
    content while B remains pending.
 6. Edit A again and retry the earlier handoff. Verify the earlier snapshot stays
@@ -141,7 +153,10 @@ select nothing.
 
 Record actual observations and any failed or unavailable steps. Ordinary browser
 automation may cover app interactions but cannot substitute for the host-comment
-round trip. This checkpoint has not been run.
+round trip. The user's native annotation on the separate log-analysis page
+demonstrates the intended comment-to-chat interaction. It does not verify this
+workbench's draft retention, definition refresh, or submission behavior. The
+workbench checkpoint has not been run.
 
 The official [Browser documentation](https://learn.chatgpt.com/docs/browser),
 checked September 5, 2026, describes local web-app previews and annotation by
