@@ -1,0 +1,39 @@
+{
+  "id": "reading-room-demo",
+  "title": "A neighborhood reading room",
+  "description": "A sample interview about a shared space for books, conversation, and quiet time. These are demonstration answers, not project decisions.",
+  "questions": [
+    {
+      "id": "atmosphere",
+      "revision": 1,
+      "title": "What should the room feel like on an ordinary afternoon?",
+      "context": "Imagine someone walking in with an hour to spare. Choose the experience we should design around first.",
+      "type": "single",
+      "options": [
+        { "id": "quiet", "label": "A quiet place to settle in", "description": "Comfortable seats, individual reading spots, and a shared expectation of quiet. People can be together without needing to join in.", "benefit": "A dependable retreat for reading and focused work.", "tradeoff": "Spontaneous conversations need a separate space or time.", "recommended": true },
+        { "id": "social", "label": "A place to meet over books", "description": "A large shared table and an easygoing atmosphere where conversations are welcome. Reading becomes a way to get to know neighbors.", "benefit": "Makes it easier for newcomers to connect with people.", "tradeoff": "Noise and interruptions can make longer reading sessions difficult." },
+        { "id": "mixed", "label": "A little of both, in separate zones", "description": "A quiet reading area alongside a smaller conversation area, with furniture and signs making the difference clear.", "benefit": "Accommodates different moods and reasons for visiting.", "tradeoff": "Needs more space and careful attention to sound carrying between zones." }
+      ]
+    },
+    {
+      "id": "activities",
+      "revision": 1,
+      "title": "Which activities belong in the first month?",
+      "context": "Select any activities worth trying. We can start with a small program and learn from who turns up.",
+      "type": "multiple",
+      "options": [
+        { "id": "open-reading", "label": "Open reading afternoons", "description": "Regular drop-in hours with no program or booking. Visitors bring a book or browse the shelves.", "benefit": "Easy to run and welcoming to people with different schedules.", "tradeoff": "People may need another reason to make their first visit.", "recommended": true },
+        { "id": "book-circle", "label": "A monthly book circle", "description": "One book, a small group, and a hosted discussion. Announce the book early so people have time to read.", "benefit": "Gives returning visitors a shared interest and a familiar rhythm.", "tradeoff": "Reading the book in advance asks for a bigger commitment." },
+        { "id": "skill-swap", "label": "Neighbor-led skill sharing", "description": "Short informal sessions such as mending, drawing, or writing, led by people from the neighborhood.", "benefit": "Brings in people who might not join a reading group.", "tradeoff": "Requires finding hosts, preparing materials, and rearranging the room." }
+      ]
+    },
+    {
+      "id": "success",
+      "revision": 1,
+      "title": "After three months, what would make this feel worthwhile?",
+      "context": "Describe one or two things you would hope to notice. A small, specific sign is more useful than a perfect target.",
+      "type": "text",
+      "options": []
+    }
+  ]
+}

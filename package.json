@@ -1,0 +1,13 @@
+{
+  "name": "grilling-workbench",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "check": "node --check src/core.js && node --check src/server.js && node --check public/app.js",
+    "test": "node --test test/*.test.js"
+  }
+}
