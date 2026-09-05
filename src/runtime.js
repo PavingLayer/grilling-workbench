@@ -1,6 +1,6 @@
 import { readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { createWorkbenchServer } from './server.js';
 import { createSubmissionSocket } from './submission-socket.js';
@@ -15,7 +15,7 @@ export async function readRuntime(dataDir) {
   let info;
   try { info = JSON.parse(await readFile(join(dataDir, 'runtime.json'), 'utf8')); }
   catch { throw new Error('No readable running-session descriptor. Start serve for this session first.'); }
-  if (info.protocolVersion !== 1 || info.dataDir !== resolve(dataDir) || typeof info.token !== 'string' || !/^[a-f0-9]{64}$/.test(info.token)
+  if (info.protocolVersion !== 1 || info.dataDir !== resolve(dataDir) || typeof info.instanceId !== 'string' || typeof info.token !== 'string' || !/^[a-f0-9]{64}$/.test(info.token)
     || !Number.isInteger(info.signalPort) || info.signalPort < 1 || info.signalPort > 65535
     || !Number.isInteger(info.port) || info.port < 1 || info.port > 65535
     || info.url !== `http://127.0.0.1:${info.port}/`) throw new Error('Invalid running-session descriptor. Restart this session.');
@@ -27,6 +27,7 @@ export async function startWorkbench({ dataDir, questionsPath, port = 0, signalP
   dataDir = resolve(dataDir);
   const release = await acquireLock(join(dataDir, 'server.lock'));
   const server = createWorkbenchServer({ dataDir, questionsPath });
+  server.instanceId = randomUUID();
   const token = randomBytes(32).toString('hex');
   const signals = createSubmissionSocket(server, { dataDir, token });
   let closing;
@@ -42,7 +43,7 @@ export async function startWorkbench({ dataDir, questionsPath, port = 0, signalP
     await server.prepare();
     signals.listen(signalPort, '127.0.0.1'); await once(signals, 'listening');
     server.listen(port, '127.0.0.1'); await once(server, 'listening');
-    const info = { protocolVersion: 1, pid: process.pid, dataDir, port: server.address().port, signalPort: signals.address().port, url: `http://127.0.0.1:${server.address().port}/`, token };
+    const info = { protocolVersion: 1, instanceId: server.instanceId, pid: process.pid, dataDir, port: server.address().port, signalPort: signals.address().port, url: `http://127.0.0.1:${server.address().port}/`, token };
     await atomicWrite(join(dataDir, 'runtime.json'), `${JSON.stringify(info, null, 2)}\n`);
     return { server, signals, info, close };
   } catch (error) { await close(); throw error; }

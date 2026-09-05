@@ -1,16 +1,21 @@
 {
   "name": "grilling-workbench",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "description": "Local question forms with whole-form submission and event-driven agent delivery",
+  "license": "UNLICENSED",
   "type": "module",
+  "bin": { "grilling-workbench": "bin/grilling-workbench.js" },
+  "files": ["bin/", "src/", "public/", "data/questions.json", "skills/", "docs/deployment.md", "docs/agent-monitor.md", "docs/integration.md"],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
-    "check": "node --check src/core.js && node --check src/server.js && node --check src/storage.js && node --check src/delivery.js && node --check src/monitor.js && node --check src/submission-socket.js && node --check public/app.js",
-    "test": "node --test test/*.test.js"
+    "check": "node --check bin/grilling-workbench.js && node --check src/cli.js && node --check src/runtime.js && node --check src/core.js && node --check src/server.js && node --check src/storage.js && node --check src/delivery.js && node --check src/monitor.js && node --check src/submission-socket.js && node --check public/app.js",
+    "test": "node --test test/*.test.js",
+    "test:package": "node scripts/test-package.js"
   },
   "devDependencies": {
     "fast-check": "^4.9.0"

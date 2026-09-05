@@ -69,7 +69,7 @@ export function createWorkbenchServer({ dataDir = join(root, '.workbench'), ques
     try {
       if (path === '/api/health' && req.method === 'GET') {
         await serial(load);
-        return respond(res, 200, { status: 'ok' });
+        return respond(res, 200, { status: 'ok', instanceId: server.instanceId ?? null });
       }
       if (path === '/api/delivery' && req.method === 'GET') return respond(res, 200, await readReceipts(dataDir));
       if (path === '/api/session' && req.method === 'GET') return respond(res, 200, envelope(await serial(load)));
