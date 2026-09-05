@@ -196,7 +196,7 @@ function questionItems() {
     const status = statusFor(state, q.id);
     const deferred = state.drafts[q.id]?.deferred;
     const updated = isStale(state, q.id) && hasAnswer(state.drafts[q.id]);
-    return `<button class="nav-item ${q.id === currentId ? 'active' : ''} ${status} ${deferred ? 'deferred' : ''}" data-go="${escape(q.id)}" title="${escape(q.title)}" ${q.id === currentId ? 'aria-current="step"' : ''}><span class="nav-dot" aria-hidden="true">${status === 'submitted' ? '✓' : ''}</span><span class="nav-number">${String(index + 1).padStart(2, '0')}</span><span class="nav-text"><span class="nav-title">${escape(q.title)}</span><span class="nav-status">${deferred ? 'Deferred · ' : ''}${capital(status)}${updated ? ' · Updated' : ''}</span></span></button>`;
+    return `<button class="nav-item ${q.id === currentId ? 'active' : ''} ${status} ${deferred ? 'deferred' : ''}" data-go="${escape(q.id)}" title="${escape(q.title)}" ${q.id === currentId ? 'aria-current="step"' : ''}><span class="nav-dot" aria-hidden="true">${status === 'submitted' ? '✓' : ''}</span><span class="nav-number">${String(index + 1).padStart(2, '0')}</span><span class="nav-text"><span class="nav-title">${escape(state.questionnaire.navigationLabels?.[q.id] || q.title)}</span><span class="nav-status">${deferred ? 'Deferred · ' : ''}${capital(status)}${updated ? ' · Updated' : ''}</span></span></button>`;
   }).join('');
 }
 

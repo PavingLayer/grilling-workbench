@@ -2,6 +2,11 @@
   "id": "reading-room-demo",
   "title": "A neighborhood reading room",
   "description": "A sample interview about a shared space for books, conversation, and quiet time. These are demonstration answers, not project decisions.",
+  "navigationLabels": {
+    "atmosphere": "Atmosphere",
+    "activities": "Activities",
+    "success": "Success"
+  },
   "questions": [
     {
       "id": "atmosphere",

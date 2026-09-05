@@ -27,7 +27,15 @@ export function validateQuestionnaire(doc) {
   insist(Array.isArray(doc.questions) && doc.questions.length > 0 && doc.questions.length <= 100, 'Provide between 1 and 100 questions.');
   const questions = doc.questions.map(validateQuestion);
   insist(new Set(questions.map(q => q.id)).size === questions.length, 'Question IDs must be unique.');
-  return { id: doc.id, title: doc.title, description: doc.description, questions };
+  const navigationLabels = {};
+  if (doc.navigationLabels !== undefined) {
+    insist(doc.navigationLabels && typeof doc.navigationLabels === 'object' && !Array.isArray(doc.navigationLabels), 'Navigation labels must be an object.');
+    for (const [id, label] of Object.entries(doc.navigationLabels)) {
+      insist(validId(id) && questions.some(q => q.id === id) && string(label, 80) && label.trim(), 'Navigation labels need a current question ID and a short title.');
+      navigationLabels[id] = label;
+    }
+  }
+  return { id: doc.id, title: doc.title, description: doc.description, questions, ...(doc.navigationLabels === undefined ? {} : { navigationLabels }) };
 }
 
 export function initialState(doc) {

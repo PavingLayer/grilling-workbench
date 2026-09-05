@@ -78,7 +78,7 @@ h3 { font-size: 1rem; }
 .question-sheet { background: white; }
 .question-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
 .question-position { color: var(--blue); font-size: .875rem; font-weight: 550; }
-.question-selector, .compact-progress { display: none; }
+.button.question-selector, .compact-progress { display: none; }
 .question-context { margin: 15px 0 18px; color: #515b62; font-size: 1rem; }
 .answer-hint { margin: 0 0 13px; font-size: .875rem; color: var(--muted); }
 .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; background: #f0f3f4; color: #5e6b72; font-size: .75rem; line-height: 1.5; font-weight: 500; }
@@ -182,7 +182,7 @@ dialog::backdrop { background: #111c2470; }
   .save-indicator .icon { width: 16px; height: 16px; flex-basis: 16px; }
   .workspace { grid-template-columns: minmax(0, 1fr); }
   .sidebar, .question-position { display: none; }
-  .question-selector { display: inline-flex; }
+  .button.question-selector { display: inline-flex; }
   .compact-progress { display: block; font-size: .8125rem; color: var(--muted); margin-bottom: 14px; }
   .main { padding: 22px 16px 26px; }
   .option-top .badge.recommended { margin-left: 32px; }

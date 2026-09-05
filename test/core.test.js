@@ -67,6 +67,18 @@ test('invalid persisted state is rejected without replacing it', () => {
   assert.throws(() => initialState({ ...fixture, questions: [fixture.questions[0], fixture.questions[0]] }), /unique/);
 });
 
+test('changing a navigation label preserves drafts and the exact reviewed question', () => {
+  let state = edit(initial(), 'atmosphere', ['social']);
+  const snapshot = review(state, ['atmosphere']);
+  const before = structuredClone(state.drafts);
+  const doc = structuredClone(state.questionnaire);
+  doc.navigationLabels = { ...doc.navigationLabels, atmosphere: 'Room atmosphere' };
+  state = transition(state, { type: 'definitions', questionnaire: doc });
+  assert.deepEqual(state.drafts, before);
+  assert.equal(isStale(state, 'atmosphere'), false);
+  assert.equal(transition(state, { type: 'submit', review: snapshot }).submissions.length, 1);
+});
+
 test('generated answer histories agree with an independent small model after every action', () => {
   const actions = fc.array(fc.record({
     kind: fc.constantFrom('edit', 'defer', 'submit', 'reload', 'update', 'adopt', 'navigate'),
