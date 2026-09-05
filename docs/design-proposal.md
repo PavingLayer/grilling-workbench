@@ -1,5 +1,11 @@
 # First checkpoint design proposal
 
+> Historical proposal: the user subsequently selected UI direction B and required
+> whole-form submission, explicit “Not answered” outcomes for blanks, and immediate
+> socket delivery to the waiting chat agent. Sections below describing partial
+> submission or manual copying are superseded. Follow [README.md](../README.md),
+> [the prototype guide](prototype.md), and [the monitor protocol](agent-monitor.md).
+
 Status: original design draft, not accepted requirements. A local prototype now
 implements provisional choices documented in the [prototype guide](prototype.md).
 The [README](../README.md) remains the source of agreed requirements. Only explicit

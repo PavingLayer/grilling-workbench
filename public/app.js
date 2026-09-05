@@ -3,7 +3,6 @@ import { transition, draftFor, questionById, hasAnswer, isStale, statusFor, prog
 const app = document.querySelector('#app');
 const dialog = document.querySelector('#review-dialog');
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-const capital = value => value[0].toUpperCase() + value.slice(1);
 let state, version, currentId, running = false, error = '', conflict = false, connectionWarning = '';
 let pending = [], review = null, shownSubmission = null, receivedIds = new Set();
 let toastTimer, modalMode = '', refreshing = false, sidebarCollapsed = false;

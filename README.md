@@ -9,7 +9,7 @@ server integration tests. Run `npm run dev` with Node.js 22 or later, then open
 
 The [prototype guide](docs/prototype.md) records how to run it, update questions,
 and interpret the validation results and remaining limitations. Its storage,
-format, and handoff choices are provisional implementation choices for trying
+format choices are provisional implementation choices for trying
 the experience, not newly accepted requirements.
 
 A [first checkpoint design proposal](docs/design-proposal.md) develops the state
@@ -48,6 +48,25 @@ initial scope.
 
 Host capability reference: [Browser documentation](https://learn.chatgpt.com/docs/browser).
 
+Submission is one action for the entire question set. The saved snapshot includes
+every question: a selected/written answer or an explicit **Not answered** outcome.
+A blank field becomes that decision only when the user submits the form. There
+are no partial submissions or required copy/paste steps. Everything other than
+form submission is discussed in the existing chat.
+
+Before presenting questions, the agent must arm a blocking socket listener. The
+server emits the complete submission after its durable save; the waiting agent
+receives it, records a receipt, and continues this chat. The current prototype
+uses a local TCP socket with replay of unreceived submissions, described in the
+[agent monitor protocol](docs/agent-monitor.md). The agent keeps its turn waiting
+on the socket; a disconnected or idle agent cannot be claimed to have received
+anything. No scheduled polling monitor is used.
+
+The user selected **B — Visible navigator**: a scrollable question sidebar beside
+the form, with Next visible in the footer. At narrow widths, a scrollable question
+picker replaces the sidebar. The [generated concepts](docs/ui-concepts/README.md)
+record the visual choice.
+
 ## Required experience
 
 - Show complete questions, option descriptions, and trade-offs together.
@@ -57,18 +76,17 @@ Host capability reference: [Browser documentation](https://learn.chatgpt.com/doc
 - Preserve draft work across question-definition refreshes, navigation, and
   reloads, with honest save/failure feedback. The treatment of answers whose
   question or option meaning changes remains to be designed.
-- Make unanswered, draft, deferred, and submitted status visible;
-  show progress without requiring the user to remember which questions they saw.
-- Let deferral coexist with retained draft choices. The exact state
-  representation remains to be designed.
-- Submit only explicitly chosen answers: no accepted defaults, implicit
-  decisions, unrelated submissions, or forced new round. Using native
-  annotations requires no action or status change in the form.
-- Support explicit partial submission and a review of exactly what will be sent.
-- Hand off only explicitly submitted decisions. Keep deferrals distinct and leave
-  questions not included in submission pending.
-- Give questions and options stable identifiers. Define an explicit submitted
-  answer snapshot and its handoff to the chat; the mechanism is still open.
+- Show which questions have answers and whether the whole form has been submitted.
+  Navigation and answering later retain existing draft choices and text.
+- Start and remain a draft until the user explicitly submits the whole form.
+  Recommendations, navigation, and native annotations never submit decisions.
+- Review the complete form without per-answer inclusion controls. Blank answers
+  are allowed and must be explicitly represented as not answered in the snapshot.
+- Automatically deliver the submitted form to the waiting agent in the same chat,
+  including all not-answered decisions. No further user click or paste is required.
+- Give questions, options, and submissions stable IDs. Retain immutable copies of
+  the exact submitted question versions and outcomes, and support retry without
+  creating another submission for the same ID.
 
 ## Testability requirement
 
@@ -83,7 +101,8 @@ Candidate properties to refine with the state model:
 - Initial state and recommendations never imply user consent.
 - Editing, annotation/clarification activity, navigation, and reload do not create
   submitted decisions.
-- Submitting selected answers cannot change unrelated answers.
+- Every submission covers the entire reviewed question set, including blanks;
+  the server rejects a subset or a review prepared before the question set changed.
 - Failed persistence or handoff preserves recoverable drafts and reports failure.
 - Repeated delivery of the same submission cannot create duplicate decisions.
 - Submitted snapshots remain attributable to the exact question/option version;
@@ -99,13 +118,14 @@ that evidence is not a guarantee for every failure mode or host integration.
 
 Prove a small end-to-end scenario: view full options, draft an answer, annotate an
 option in the embedded browser, clarify in chat, return with the draft intact,
-reload, and explicitly submit only the intended answer while another question
-remains pending. Also verify that agent edits to question definitions refresh
+reload, and explicitly submit the entire form with one answered question and
+another deliberately left blank. Verify that the socket wakes the waiting agent
+and carries both outcomes, without manual transfer. Also verify that agent edits to question definitions refresh
 the form while preserving draft work. Verify the host annotation workflow in the
 real embedded browser, not only in a mock; it requires no clarification state in
 the application.
 
-Long-term storage, question import/update format, submission handoff, and handling
+Long-term storage, question import/update format, and handling
 changed questions remain design questions. The prototype uses replaceable
 implementations to make those choices concrete. Keep publishing and billing out
 of this checkpoint.

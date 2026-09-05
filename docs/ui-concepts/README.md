@@ -2,7 +2,7 @@
 
 Generated September 5, 2026 with the built-in image generation tool in response to the user's request to compare UI concepts before implementing a chosen direction.
 
-Status: awaiting the user's choice. These images are design mockups, not the running application, and do not settle requirements. No direction is selected by its recommendation label.
+Status: the user explicitly selected **B — Visible navigator** on September 5, 2026. The prototype implements its dark scrollable sidebar, compact form, teal primary action, and persistent footer. Narrow panes use a question picker. The original images remain design references; subsequent user decisions require whole-form submission and automatic socket handoff, superseding the partial-submission details shown in these mockups.
 
 All three concepts depict the same sample question in a 20-question session. Image typography and proportions are illustrative; the chosen design must be implemented responsively and checked at the actual embedded-browser size while preserving the agreed answer-state behavior.
 
