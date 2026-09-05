@@ -35,8 +35,8 @@ async function request(path, options) {
 }
 
 function saveText() {
-  if (error) return 'Not saved · retry needed';
-  if (connectionWarning) return 'Refresh unavailable · drafts retained';
+  if (error) return 'Not saved';
+  if (connectionWarning) return 'Refresh unavailable';
   return pending.length ? 'Saving…' : 'Saved';
 }
 
@@ -62,6 +62,7 @@ function renderChrome() {
   const list = questionItems();
   if (sidebar.innerHTML !== list) { const scroll = sidebar.scrollTop; sidebar.innerHTML = list; sidebar.scrollTop = scroll; }
   document.querySelector('#question-badges').innerHTML = badge(currentId);
+  document.querySelector('[data-action="clear"]').disabled = !hasAnswer(draftFor(state, currentId));
   document.querySelector('#history-button').textContent = `Submissions (${state.submissions.length})`;
   document.querySelector('#history-button').hidden = !state.submissions.length;
   document.querySelector('#open-review').disabled = !state.questionnaire.questions.some(q => canSubmit(state, q.id)) || Boolean(pending.length || error || connectionWarning);
@@ -187,7 +188,7 @@ const dialogHead = (title, description = '') => `<div class="dialog-head"><div><
 
 function showQuestions() {
   const stats = progress(state);
-  openDialog(`${dialogHead('Questions', `${stats.submitted} submitted · ${stats.pending} pending`)}<nav class="question-list" aria-label="All questions">${questionItems()}</nav>`, 'questions');
+  openDialog(`${dialogHead('Questions', `${stats.submitted} submitted · ${stats.pending} pending`)}<nav class="question-list" aria-label="All questions">${questionItems()}</nav>${state.submissions.length ? `<div class="dialog-foot"><button class="button" data-modal="history">Submissions (${state.submissions.length})</button></div>` : ''}`, 'questions');
   dialog.querySelector('[aria-current="step"]')?.scrollIntoView({ block: 'nearest' });
 }
 
@@ -265,6 +266,7 @@ dialog.addEventListener('click', async event => {
   if (prior) return showSubmission(state.submissions.find(s => s.id === prior.dataset.submission));
   const action = event.target.closest('[data-modal]')?.dataset.modal;
   if (action === 'close') dialog.close();
+  if (action === 'history') showHistory();
   if (action === 'submit') submitReview();
   if (action === 'recover') downloadRecovery();
   if (action === 'retry') { modalMode = 'saving'; retry(); }
