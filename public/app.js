@@ -155,6 +155,9 @@ function openDialog(html, mode) {
   modalMode = mode;
   dialog.innerHTML = html;
   if (!dialog.open) dialog.showModal();
+  const heading = dialog.querySelector('#dialog-title');
+  heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
 }
 const dialogHead = (title, description = '') => `<div class="dialog-head"><div><h2 id="dialog-title">${title}</h2>${description ? `<p>${description}</p>` : ''}</div><button class="close" data-modal="close" aria-label="Close dialog">×</button></div>`;
 
@@ -219,7 +222,11 @@ dialog.addEventListener('click', async event => {
     }
   }
 });
-dialog.addEventListener('close', () => { modalMode = ''; });
+dialog.addEventListener('close', () => {
+  modalMode = '';
+  const returnTarget = document.querySelector('#open-review:not(:disabled)') || document.querySelector('#history-button:not([hidden])') || document.querySelector('#answer-text');
+  returnTarget?.focus({ preventScroll: true });
+});
 
 function downloadRecovery() {
   const blob = new Blob([JSON.stringify({ version, state, pending }, null, 2)], { type: 'application/json' });

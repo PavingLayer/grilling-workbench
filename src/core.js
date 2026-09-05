@@ -144,7 +144,7 @@ export function restoreState(raw) {
 }
 
 export function formatSubmission(submission) {
-  const lines = [`# ${submission.title}`, '', `Submission: ${submission.id}`, `Confirmed: ${submission.createdAt}`, '', 'Explicitly submitted answers', ''];
+  const lines = [`# ${submission.title}`, '', `Submission: ${submission.id}`, `Prepared: ${submission.createdAt}`, '', 'Explicitly submitted answers', ''];
   for (const { question: q, answer } of submission.answers) {
     lines.push(`## ${q.title}`, `Question: ${q.id} · revision ${q.revision}`, q.context, '');
     for (const id of answer.optionIds) {
