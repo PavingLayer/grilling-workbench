@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A local question-answering workbench. Keep drafts, review your answers, and submit only the decisions you choose.">
+  <meta name="description" content="A local question-answering workbench. Keep drafts, revisit questions, and submit the whole form in one action.">
   <title>Reading room · Workbench</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2300656b'/%3E%3Cpath d='M8 9v14h6V9m4 0v14h6V9' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/styles.css">
@@ -13,7 +13,7 @@
   <a class="skip-link" href="#question">Skip to question</a>
   <header class="topbar"><div class="brand-area"><button id="toggle-sidebar" class="menu-button" aria-label="Hide question sidebar" aria-expanded="true" aria-controls="question-sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><span class="brand">Workbench</span></div><div class="session-bar"><div class="session-name"><span class="session-prefix">Session:</span> <strong id="session-title">Opening questions…</strong><span id="demo-label" class="demo-label" hidden>Demo</span></div><span id="save-state" class="save-indicator" role="status" aria-live="polite"></span></div></header>
   <div id="app"><p class="loading" role="status">Opening your questions…</p></div>
-  <dialog id="review-dialog" aria-labelledby="dialog-title"></dialog>
+  <dialog id="app-dialog" aria-labelledby="dialog-title"></dialog>
   <div id="notice" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

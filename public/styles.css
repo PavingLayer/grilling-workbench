@@ -139,13 +139,6 @@ dialog::backdrop { background: #111c2470; }
 .question-list .nav-title { display: block; overflow: visible; }
 .question-list .nav-status, .question-list .nav-number { color: var(--muted); }
 .question-list .nav-item.active .nav-dot { border-color: var(--blue); }
-.review-choice { display: flex; gap: 12px; border: 1px solid var(--line); padding: 14px; margin-bottom: 10px; border-radius: 5px; align-items: flex-start; }
-.review-choice input { accent-color: var(--blue); width: 18px; height: 18px; flex: 0 0 18px; margin-top: 3px; }
-.review-choice label { line-height: 1.5; font-size: .875rem; cursor: pointer; }
-.review-choice strong { display: block; margin-bottom: 5px; }
-.review-choice span { color: var(--muted); white-space: pre-wrap; }
-.review-answer { border-bottom: 1px solid var(--line); padding: 0 0 20px; margin-bottom: 20px; }
-.review-answer p { margin: 9px 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .submission-details summary { cursor: pointer; font-size: .875rem; color: var(--muted); }
 .export-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .875rem; line-height: 1.6; background: #f6f8f8; border: 1px solid var(--line); padding: 16px; border-radius: 5px; max-height: 340px; overflow: auto; margin-top: 16px; }
 .pending-list { font-size: .875rem; color: var(--muted); line-height: 1.6; margin-top: 16px; }
@@ -213,7 +206,7 @@ dialog::backdrop { background: #111c2470; }
   .question-actions { gap: 8px; }
   .question-actions .button { padding: 10px; font-size: .8125rem; }
   .footer-buttons .button .icon { width: 18px; height: 18px; flex-basis: 18px; }
-  #open-review .icon { display: none; }
+  #submit-form .icon { display: none; }
 }
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }

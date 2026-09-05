@@ -1,10 +1,10 @@
-import { transition, draftFor, questionById, hasAnswer, isStale, statusFor, progress, canSubmit, formSubmitted, makeReview, formatSubmission } from '/core.js';
+import { transition, draftFor, questionById, hasAnswer, isStale, statusFor, progress, formSubmitted, makeReview as makeSubmission, formatSubmission } from '/core.js';
 
 const app = document.querySelector('#app');
-const dialog = document.querySelector('#review-dialog');
+const dialog = document.querySelector('#app-dialog');
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 let state, version, currentId, running = false, error = '', conflict = false, connectionWarning = '';
-let pending = [], review = null, shownSubmission = null, receivedIds = new Set();
+let pending = [], shownSubmission = null, receivedIds = new Set();
 let toastTimer, modalMode = '', refreshing = false, sidebarCollapsed = false;
 const narrowViewport = matchMedia('(max-width: 640px)');
 const iconPaths = {
@@ -64,7 +64,8 @@ function renderChrome() {
   document.querySelector('[data-action="clear"]').disabled = !hasAnswer(draftFor(state, currentId));
   document.querySelector('#history-button').textContent = `Submissions (${state.submissions.length})`;
   document.querySelector('#history-button').hidden = !state.submissions.length;
-  document.querySelector('#open-review').disabled = Boolean(pending.length || error || connectionWarning);
+  // Draft autosaves must not toggle the submit button while the user types.
+  document.querySelector('#submit-form').disabled = conflict || pending.some(item => item.action.type === 'submit');
   const warning = document.querySelector('#save-warning');
   warning.hidden = !error && !connectionWarning;
   warning.innerHTML = warning.hidden ? '' : `<p>${escape(error || connectionWarning)} Your work in this tab is retained. Unsaved changes will be lost if you close or reload it.</p><button class="button small" data-action="${conflict ? 'load-saved' : 'retry'}">${conflict ? 'Load saved version…' : 'Retry saving'}</button><button class="button small" data-action="recover">Download recovery copy</button>`;
@@ -90,12 +91,12 @@ function render() {
     <aside class="sidebar" id="question-sidebar" aria-label="Question sidebar"><div class="sidebar-heading">Questions <span>${state.questionnaire.questions.length}</span></div><nav id="sidebar-questions" class="sidebar-questions" aria-label="Questions"></nav><div class="sidebar-summary"><progress class="progress-track" aria-label="Submitted questions" max="1" value="0"></progress><p><span id="progress-label"></span><span aria-hidden="true"> · </span><span id="footer-status"></span></p><button id="history-button" class="button sidebar-button" data-action="history" hidden></button></div></aside>
     <main class="main"><div class="form-content"><p class="compact-progress" id="compact-progress"></p>
     <div id="save-warning" class="alert" role="alert" hidden></div>
-    <article class="question-sheet" id="question" aria-labelledby="question-title"><div class="question-meta"><span class="question-position">Question ${index + 1} of ${state.questionnaire.questions.length}</span><button class="button small question-selector" id="question-selector" data-action="questions" aria-haspopup="dialog" aria-controls="review-dialog">Question ${index + 1} of ${state.questionnaire.questions.length} <span aria-hidden="true">▾</span></button><span id="question-badges"></span></div><h1 id="question-title" tabindex="-1">${escape(q.title)}</h1><p class="question-context">${escape(q.context)}</p>
+    <article class="question-sheet" id="question" aria-labelledby="question-title"><div class="question-meta"><span class="question-position">Question ${index + 1} of ${state.questionnaire.questions.length}</span><button class="button small question-selector" id="question-selector" data-action="questions" aria-haspopup="dialog" aria-controls="app-dialog">Question ${index + 1} of ${state.questionnaire.questions.length} <span aria-hidden="true">▾</span></button><span id="question-badges"></span></div><h1 id="question-title" tabindex="-1">${escape(q.title)}</h1><p class="question-context">${escape(q.context)}</p>
     ${stale ? `<div class="alert"><p><strong>This question was updated.</strong> Your earlier answer is kept below. ${canAdopt ? 'Review the new wording, then keep or edit your answer.' : 'An earlier choice is no longer available. Choose a new answer to continue.'}</p><details><summary>Earlier question and answer</summary><div class="old-answer">${escape(oldAnswer(draft))}</div></details>${canAdopt ? '<button class="button small" data-action="adopt">Keep my answer with this wording</button>' : ''}</div>` : ''}
     ${q.type !== 'text' ? `<p class="answer-hint">${q.type === 'single' ? 'Choose one, or write your own answer below.' : 'Choose any that apply, or write your own answer below.'}</p><fieldset class="options" aria-labelledby="question-title">${q.options.map(o => `<label class="option ${draft.optionIds.includes(o.id) ? 'selected' : ''}" id="option-${escape(q.id)}-${escape(o.id)}"><span class="option-top"><input type="${q.type === 'single' ? 'radio' : 'checkbox'}" name="answer-option" value="${escape(o.id)}" ${draft.optionIds.includes(o.id) ? 'checked' : ''} aria-labelledby="label-${escape(q.id)}-${escape(o.id)}"><span class="option-title" id="label-${escape(q.id)}-${escape(o.id)}">${escape(o.label)}</span>${o.recommended ? '<span class="badge recommended">Recommended</span>' : ''}</span><div class="option-body"><p class="option-description">${escape(o.description)}</p><div class="tradeoffs"><p><strong class="offers">${icon('check')} Offers</strong><span>${escape(o.benefit)}</span></p><p><strong class="tradeoff">${icon('balance')} Trade-off</strong><span>${escape(o.tradeoff)}</span></p></div></div></label>`).join('')}</fieldset>` : ''}
     <label for="answer-text" class="field-label">${q.type === 'text' ? 'Your answer' : 'Your answer <span class="optional">In your own words</span>'}</label><textarea id="answer-text" maxlength="20000" rows="${q.type === 'text' ? 7 : 3}">${escape(draft.text)}</textarea>
     <div class="question-actions"><button class="button" data-action="defer">${icon('clock')}Answer later</button><button class="button" data-action="clear" ${hasAnswer(draft) ? '' : 'disabled'}>${icon('clear')}Clear answer</button></div></article></div></main>
-    </div><footer class="footer-bar"><nav class="footer-buttons ${index === state.questionnaire.questions.length - 1 ? 'last-question' : ''}" aria-label="Question navigation"><button class="button previous-question" ${index > 0 ? `data-go="${escape(state.questionnaire.questions[index - 1].id)}"` : 'disabled'} aria-label="Previous question">${icon('left')}<span>Previous</span></button><button class="button ${index === state.questionnaire.questions.length - 1 ? 'primary' : ''}" id="open-review" data-action="review">${icon('list')}Review form</button>${index < state.questionnaire.questions.length - 1 ? `<button class="button primary" data-go="${escape(state.questionnaire.questions[index + 1].id)}">Next question ${icon('right')}</button>` : ''}</nav></footer>`;
+    </div><footer class="footer-bar"><nav class="footer-buttons ${index === state.questionnaire.questions.length - 1 ? 'last-question' : ''}" aria-label="Question navigation"><button class="button previous-question" ${index > 0 ? `data-go="${escape(state.questionnaire.questions[index - 1].id)}"` : 'disabled'} aria-label="Previous question">${icon('left')}<span>Previous</span></button><button class="button ${index === state.questionnaire.questions.length - 1 ? 'primary' : ''}" id="submit-form" data-action="submit">${icon('check')}Submit form</button>${index < state.questionnaire.questions.length - 1 ? `<button class="button primary" data-go="${escape(state.questionnaire.questions[index + 1].id)}">Next question ${icon('right')}</button>` : ''}</nav></footer>`;
   renderChrome();
   document.querySelector('.main').scrollTop = mainScroll;
   document.querySelector('#sidebar-questions').scrollTop = sidebarScroll;
@@ -171,7 +172,7 @@ app.addEventListener('click', event => {
   }
   if (action === 'clear') stage({ type: 'edit', questionId: currentId, answer: { optionIds: [], text: '' } });
   if (action === 'adopt') stage({ type: 'adopt', questionId: currentId });
-  if (action === 'review') openReview();
+  if (action === 'submit') submitForm();
   if (action === 'questions') showQuestions();
   if (action === 'history') showHistory();
   if (action === 'recover') downloadRecovery();
@@ -219,21 +220,22 @@ document.querySelector('#toggle-sidebar').addEventListener('click', () => {
 narrowViewport.addEventListener('change', updateSidebarToggle);
 updateSidebarToggle();
 
-function openReview() {
-  review = canSubmit(state) ? makeReview(state, crypto.randomUUID(), new Date().toISOString()) : null;
-  const entries = state.questionnaire.questions.map(q => {
-    const draft = draftFor(state, q.id);
-    const answer = draft.optionIds.map(id => draft.question.options.find(o => o.id === id)?.label).filter(Boolean).join(' · ');
-    return `<section class="review-answer"><h3>${escape(q.title)}</h3><p>${hasAnswer(draft) ? escape([answer, draft.text].filter(Boolean).join('\n')) : '<span class="badge">Not answered</span>'}</p>${isStale(state, q.id) && hasAnswer(draft) ? '<p class="muted">Review the updated wording before submitting.</p>' : ''}<button class="button small" data-go="${escape(q.id)}">Edit answer</button></section>`;
-  }).join('');
-  openDialog(`${dialogHead('Review form', 'Submit this entire set of questions. Anything left blank will be reported to the agent as not answered.')}<div class="dialog-body">${entries}${review ? `<details class="submission-details"><summary>Exact form submission</summary><pre class="export-text">${escape(formatSubmission(review))}</pre></details>` : '<p class="alert">An answered question has changed. Review its updated wording before submitting.</p>'}</div><div class="dialog-foot"><button class="button" data-modal="close">Keep editing</button><button class="button primary" id="submit-button" data-modal="submit" ${!review || pending.length || error ? 'disabled' : ''}>Submit form</button></div>`, 'review');
-}
-
-function submitReview() {
-  if (!review || pending.length || error) return;
-  shownSubmission = structuredClone(review);
-  openDialog(`${dialogHead('Saving your submission')}<div class="dialog-body"><p role="status">Saving your whole form…</p></div>`, 'saving');
-  stage({ type: 'submit', review });
+function submitForm() {
+  if (conflict || pending.some(item => item.action.type === 'submit')) return;
+  let snapshot;
+  try {
+    // Capture exactly what is in the form at the explicit click, including edits
+    // still saving. The existing queue persists those edits before this snapshot.
+    snapshot = makeSubmission(state, crypto.randomUUID(), new Date().toISOString());
+  } catch (failure) {
+    const changed = state.questionnaire.questions.find(q => hasAnswer(state.drafts[q.id]) && isStale(state, q.id));
+    if (changed) navigate(changed.id);
+    toast(failure.message);
+    return;
+  }
+  shownSubmission = snapshot;
+  openDialog(`${dialogHead('Submitting form')}<div class="dialog-body"><p role="status">Saving your whole form…</p></div>`, 'saving');
+  stage({ type: 'submit', review: snapshot });
 }
 
 function renderSaveFailure() {
@@ -276,7 +278,6 @@ dialog.addEventListener('click', async event => {
   const action = event.target.closest('[data-modal]')?.dataset.modal;
   if (action === 'close') dialog.close();
   if (action === 'history') showHistory();
-  if (action === 'submit') submitReview();
   if (action === 'recover') downloadRecovery();
   if (action === 'retry') { modalMode = 'saving'; retry(); }
 
@@ -284,7 +285,7 @@ dialog.addEventListener('click', async event => {
 dialog.addEventListener('close', () => {
   const wasQuestionPicker = modalMode === 'questions';
   modalMode = '';
-  const candidates = wasQuestionPicker ? ['#question-selector', '#toggle-sidebar'] : ['#open-review:not(:disabled)', '#history-button:not([hidden])', '#toggle-sidebar'];
+  const candidates = wasQuestionPicker ? ['#question-selector', '#toggle-sidebar'] : ['#submit-form:not(:disabled)', '#history-button:not([hidden])', '#toggle-sidebar'];
   const returnTarget = candidates.map(selector => document.querySelector(selector)).find(element => element?.getClientRects().length);
   returnTarget?.focus({ preventScroll: true });
 });
@@ -322,7 +323,6 @@ async function refresh() {
     connectionWarning = '';
     if (result.version !== version) {
       state = result.state; version = result.version;
-      if (modalMode === 'review') { dialog.close(); review = null; toast('The form changed. Review your answers again before submitting.'); }
       render();
       if (modalMode === 'questions') showQuestions();
     } else renderChrome();
