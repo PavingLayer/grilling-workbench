@@ -8,11 +8,16 @@ or becomes the source of project decisions.
 ## Discovery needs installation, routing, and instructions
 
 A repository published on the internet is not automatically visible to an agent.
-The skill must first be installed into a location the host scans. Codex scans
-project `.agents/skills` directories; it initially reads names and descriptions,
-then loads the full skill when selected. Explicit invocation and description-based
-matching are both supported. Large catalogs can shorten or omit descriptions, so
-put the main trigger first. [Official skill documentation](https://learn.chatgpt.com/docs/build-skills)
+The skill must first be installed into a location the agent application scans.
+For the current task, Codex combines applicable project skills (`.agents/skills`
+from the working directory up to the repository root), user skills
+(`~/.agents/skills`), administrator skills, and bundled system skills. Enabled
+plugins can also contribute skills. This does not include every other project's
+local skills. Here, “available skills” means this combined set for the current task.
+Codex initially reads names and descriptions, then loads the full skill when
+selected. Explicit invocation and description-based matching are supported.
+Large skill lists can shorten or omit descriptions, so put the main trigger first.
+[Official skill documentation](https://learn.chatgpt.com/docs/build-skills)
 
 The bundled [skill](../skills/grilling-workbench/SKILL.md) describes browser
 questionnaires, workbench requests, and projects that choose this interface for
@@ -27,8 +32,9 @@ After package installation:
 npx --no-install grilling-workbench install-skill
 ```
 
-Refresh the host's catalog or restart it if the new skill is absent. Check its
-visible name and source path; avoid duplicate global/project copies of the same
+Codex detects installed skill changes automatically; restart Codex if the new
+skill does not appear. Check its visible name and source path in the skill picker;
+avoid duplicate user/project copies of the same
 name. Explicitly invoke `$grilling-workbench` in Codex (or the host's skill picker)
 for a first trial. Automatic selection is useful but is not a deterministic
 application hook. A project instruction makes the intended preference clearer.

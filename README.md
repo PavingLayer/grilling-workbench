@@ -30,8 +30,8 @@ npx --no-install grilling-workbench install-skill
 ```
 
 The installer creates `.agents/skills/grilling-workbench` and refuses to overwrite
-an existing skill. Reload the host's skill catalog if needed, then invoke
-`$grilling-workbench`. The package is not published to a registry yet; use the
+an existing skill. Codex detects new skills automatically; restart it if the skill
+does not appear, then invoke `$grilling-workbench`. The package is not published to a registry yet; use the
 archive, not an unverified registry package with the same name.
 
 The [deployment guide](docs/deployment.md) covers non-Node projects, session

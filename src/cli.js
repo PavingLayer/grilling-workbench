@@ -76,7 +76,7 @@ export async function main(args = process.argv.slice(2)) {
       for (const entry of await readdir(source)) await cp(join(source, entry), join(target, entry), { recursive: true, force: false, errorOnExist: true });
     }
     catch (error) { await rm(target, { recursive: true, force: true }); throw error; }
-    return output({ installed: target, next: 'Refresh the host skill catalog or start a new task. Invoke $grilling-workbench to verify discovery.' });
+    return output({ installed: target, next: 'In Codex, invoke $grilling-workbench to verify discovery; restart Codex if it does not appear. Other agent applications may require reloading their skill list.' });
   }
   if (command === 'init') {
     if (Boolean(values.demo) === Boolean(values.questions)) throw new Error('Choose either --questions FILE or --demo.');
