@@ -59,33 +59,41 @@ function validateAnswer(question, answer) {
 }
 
 export function statusFor(state, id) {
-  const draft = state.drafts[id];
-  if (!hasAnswer(draft)) return 'unanswered';
+  const draft = draftFor(state, id);
   const submitted = !isStale(state, id) && !draft.deferred && state.submissions.some(s => s.answers.some(a => a.question.id === id && equal(a.question, draft.question) && equal(a.answer, answerValue(draft))));
-  return submitted ? 'submitted' : 'draft';
+  return submitted ? 'submitted' : hasAnswer(draft) ? 'draft' : 'unanswered';
 }
 
 export function progress(state) {
-  const counts = { total: state.questionnaire.questions.length, submitted: 0, draft: 0, unanswered: 0, deferred: 0, pending: 0 };
+  const counts = { total: state.questionnaire.questions.length, answered: 0, submitted: 0, draft: 0, unanswered: 0, deferred: 0, pending: 0 };
   for (const q of state.questionnaire.questions) {
     counts[statusFor(state, q.id)]++;
+    if (hasAnswer(state.drafts[q.id])) counts.answered++;
     if (state.drafts[q.id]?.deferred) counts.deferred++;
   }
   counts.pending = counts.total - counts.submitted;
   return counts;
 }
 
-export function canSubmit(state, id) {
-  return Boolean(questionById(state, id) && hasAnswer(state.drafts[id]) && !isStale(state, id) && statusFor(state, id) !== 'submitted');
+export function canSubmit(state) {
+  return state.questionnaire.questions.every(q => !hasAnswer(state.drafts[q.id]) || !isStale(state, q.id));
 }
 
-export function makeReview(state, ids, id, createdAt) {
+export function formSubmitted(state) {
+  const latest = state.submissions.at(-1);
+  if (latest?.scope !== 'form' || latest.title !== state.questionnaire.title || latest.description !== state.questionnaire.description) return false;
+  return latest.answers.length === state.questionnaire.questions.length && latest.answers.every((a, i) => equal(a.question, state.questionnaire.questions[i]) && equal(a.answer, answerValue(draftFor(state, a.question.id))));
+}
+
+export function makeReview(state, id, createdAt) {
   insist(validId(id) && string(createdAt, 100) && !Number.isNaN(Date.parse(createdAt)), 'Invalid submission identity.');
-  insist(Array.isArray(ids) && ids.length > 0 && new Set(ids).size === ids.length, 'Choose at least one answer to review.');
-  insist(ids.every(qid => canSubmit(state, qid)), 'An answer is empty, already submitted, or needs review after a question update.');
+  insist(canSubmit(state), 'An answered question was updated. Review its new wording before submitting the form.');
   return {
-    id, createdAt, questionnaireId: state.questionnaire.id, title: state.questionnaire.title,
-    answers: ids.map(qid => ({ question: copy(questionById(state, qid)), answer: answerValue(state.drafts[qid]), draftRevision: state.drafts[qid].revision })),
+    id, createdAt, scope: 'form', questionnaireId: state.questionnaire.id, title: state.questionnaire.title, description: state.questionnaire.description,
+    answers: state.questionnaire.questions.map(question => {
+      const draft = draftFor(state, question.id);
+      return { question: copy(question), answer: answerValue(draft), outcome: hasAnswer(draft) ? 'answered' : 'not_answered', draftRevision: draft.revision };
+    }),
   };
 }
 
@@ -98,13 +106,13 @@ export function transition(state, action) {
   }
   if (action.type === 'submit') {
     const review = action.review;
-    insist(review && Array.isArray(review.answers), 'Review the selected answers before submitting.');
+    insist(review && Array.isArray(review.answers), 'Review the entire form before submitting.');
     const existing = state.submissions.find(s => s.id === review.id);
     if (existing) { insist(equal(existing, review), 'Submission ID already belongs to different answers.'); return state; }
-    const expected = makeReview(state, review.answers.map(a => a.question.id), review.id, review.createdAt);
+    const expected = makeReview(state, review.id, review.createdAt);
     insist(equal(expected, review), 'The reviewed answers changed. Review them again before submitting.');
     const drafts = { ...state.drafts };
-    for (const a of review.answers) drafts[a.question.id] = { ...drafts[a.question.id], deferred: false };
+    for (const a of review.answers) drafts[a.question.id] = { ...draftFor(state, a.question.id), deferred: false };
     return { ...state, drafts, submissions: [...state.submissions, copy(review)] };
   }
   insist(['edit', 'defer', 'adopt'].includes(action.type), 'Unknown action.');
@@ -141,10 +149,12 @@ export function restoreState(raw) {
   for (const s of raw.submissions) {
     insist(validId(s?.id) && !seen.has(s.id) && s.questionnaireId === questionnaire.id && string(s.title) && string(s.createdAt, 100) && !Number.isNaN(Date.parse(s.createdAt)) && Array.isArray(s.answers) && s.answers.length > 0, 'Saved submission is invalid.');
     seen.add(s.id);
+    insist(s.scope === undefined || (s.scope === 'form' && string(s.description)), 'Saved submission scope is invalid.');
     const questionIds = new Set();
     for (const a of s.answers) {
       validateAnswer(validateQuestion(a.question), a.answer);
-      insist(!questionIds.has(a.question.id) && hasAnswer(a.answer) && Number.isSafeInteger(a.draftRevision) && a.draftRevision > 0, 'Saved submission answer is invalid.');
+      insist(!questionIds.has(a.question.id) && Number.isSafeInteger(a.draftRevision) && a.draftRevision >= (s.scope === 'form' ? 0 : 1), 'Saved submission answer is invalid.');
+      insist(s.scope === 'form' ? a.outcome === (hasAnswer(a.answer) ? 'answered' : 'not_answered') : hasAnswer(a.answer), 'Saved submission outcome is invalid.');
       questionIds.add(a.question.id);
     }
   }
@@ -152,9 +162,10 @@ export function restoreState(raw) {
 }
 
 export function formatSubmission(submission) {
-  const lines = [`# ${submission.title}`, '', `Submission: ${submission.id}`, `Prepared: ${submission.createdAt}`, '', 'Explicitly submitted answers', ''];
+  const lines = [`# ${submission.title}`, '', `Submission: ${submission.id}`, `Prepared: ${submission.createdAt}`, '', submission.scope === 'form' ? 'Entire form submitted. Blank questions are explicitly not answered.' : 'Earlier submission', ''];
   for (const { question: q, answer } of submission.answers) {
     lines.push(`## ${q.title}`, `Question: ${q.id} · revision ${q.revision}`, q.context, '');
+    if (!hasAnswer(answer)) lines.push('Not answered: the user submitted this question without an answer.', '');
     for (const id of answer.optionIds) {
       const o = q.options.find(option => option.id === id);
       lines.push(`Selected: ${o.label} [${o.id}]`, o.description, `Benefit: ${o.benefit}`, `Trade-off: ${o.tradeoff}`, '');
