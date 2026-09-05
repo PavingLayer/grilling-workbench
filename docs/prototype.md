@@ -1,4 +1,9 @@
-# Local prototype
+# Local prototype — historical validation record
+
+This report records the 0.1 prototype. For current installation, lifecycle, and
+agent instructions use [README](../README.md), [deployment](deployment.md), and
+[agent delivery](agent-monitor.md). Current requirements supersede provisional
+choices below. Earlier command examples assume the source checkout.
 
 Built September 5, 2026. The user selected UI direction B and subsequently required
 whole-form submission with immediate socket delivery to the existing chat. Storage,

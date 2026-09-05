@@ -1,6 +1,6 @@
 ---
 name: grilling-workbench
-description: Present interview rounds and project decisions as local browser forms and receive whole-form submissions over a socket. Use when the user requests the workbench or a browser questionnaire, or project instructions select it as the question interface for grilling, grill-with-docs, or wayfinder. Keep reasoning and clarification in the existing chat.
+description: Use the workbench to present browser questionnaires and receive whole-form answers in chat. Apply when the user asks for a browser form or project instructions choose it for grilling, grill-with-docs, or wayfinder.
 ---
 
 # Grilling Workbench

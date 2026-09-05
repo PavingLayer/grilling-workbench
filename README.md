@@ -1,134 +1,108 @@
 # Grilling Workbench
 
-A standalone question-answering workbench for design conversations, opened in
-the embedded browser alongside a subscription-backed ChatGPT/Codex chat.
+Local question forms for project interviews in an embedded browser. The agent
+writes questions, the user submits the entire form, and a waiting socket delivers
+the saved answers back to the agent. Reasoning and clarification stay in the
+existing chat. No model API, external assets, or production dependencies.
 
-Status: a local prototype is implemented, with generated state tests and local
-server integration tests. Run `npm run dev` with Node.js 22 or later, then open
-[the local workbench](http://127.0.0.1:4310/). The project name is provisional.
+**0.2.0 is an installable local CLI package.** Node.js 22 or later is required.
+The supported deployment is a browser and agent on the same computer; no public
+server or idle-chat wakeup service is included. The project name is provisional.
 
-The [prototype guide](docs/prototype.md) records how to run it, update questions,
-and interpret the validation results and remaining limitations. Its storage,
-format choices are provisional implementation choices for trying
-the experience, not newly accepted requirements.
+## Install in a project
 
-A [first checkpoint design proposal](docs/design-proposal.md) develops the state
-model, open choices, and verification plan. It is a draft, not accepted
-requirements; no implementation choices are settled by that document.
+Build a distributable archive from this repository:
 
-## Project boundary
+```sh
+npm ci
+npm run check
+npm test
+npm run test:package
+mkdir -p dist
+npm pack --pack-destination dist
+```
 
-This is an independent repository, not an Inventor package, feature, or worktree.
-Inventor inspired the workflow but its source, product decisions, and interview
-records remain in its own project. The workbench should support other topics.
+Then, from the consuming project:
 
-The workbench is a simple question-answering UI. The existing chat handles
-reasoning and clarification under the user's chosen interview skills, including
-Grill and Wayfinder. Changing the presentation does not redefine those skills.
+```sh
+npm install --save-dev /absolute/path/grilling-workbench-0.2.0.tgz
+npx --no-install grilling-workbench install-skill
+```
 
-## Initial integration
+The installer creates `.agents/skills/grilling-workbench` and refuses to overwrite
+an existing skill. Reload the host's skill catalog if needed, then invoke
+`$grilling-workbench`. The package is not published to a registry yet; use the
+archive, not an unverified registry package with the same name.
 
-Run an ordinary local web app and open it in the host's embedded browser. The
-user uses the host's native Annotate or Quick Annotate features on a question or
-individual option, then sends the annotation to the existing chat. The agent
-explains or changes the question definitions, causing the page content to
-refresh. The user continues answering in the same form with their draft work
-preserved, without submitting the round.
+The [deployment guide](docs/deployment.md) covers non-Node projects, session
+storage, updates, shutdown, backups, and recovery. The [integration guide](docs/integration.md)
+explains skill discovery and project configuration alongside Matt Pocock's skills.
 
-Clarification belongs entirely to the host and chat. The application has no
-clarification markers, clarifying status, resolution controls, or submission
-restrictions based on clarification. It does not track or synchronize native
-comments. Displaying updated question definitions and preserving answer state
-are ordinary form behavior, independent of why a definition changed.
+## Agent workflow
 
-AI conversation stays in the existing subscription-backed chat. The initial app
-makes no model API calls and has no API-priced fallback. A plugin, independent AI
-backend, Codex App Server, public deployment, and billing system are outside the
-initial scope.
+```sh
+npx --no-install grilling-workbench init --session .workbench/topic-r01 --questions /absolute/path/round.json
+npx --no-install grilling-workbench serve --session .workbench/topic-r01
+```
 
-Host capability reference: [Browser documentation](https://learn.chatgpt.com/docs/browser).
+Keep the server process running. In a second persistent process, **before showing
+the URL returned by serve**:
 
-Submission is one action for the entire question set. The saved snapshot includes
-every question: a selected/written answer or an explicit **Not answered** outcome.
-A blank field becomes that decision only when the user submits the form. There
-are no partial submissions or required copy/paste steps. Everything other than
-form submission is discussed in the existing chat.
+```sh
+npx --no-install grilling-workbench wait --session .workbench/topic-r01
+```
 
-Before presenting questions, the agent must arm a blocking socket listener. The
-server emits the complete submission after its durable save; the waiting agent
-receives it, records a receipt, and continues this chat. The current prototype
-uses a local TCP socket with replay of unreceived submissions, described in the
-[agent monitor protocol](docs/agent-monitor.md). The agent keeps its turn waiting
-on the socket; a disconnected or idle agent cannot be claimed to have received
-anything. No scheduled polling monitor is used.
+Keep the agent turn waiting on that process. The listener blocks on TCP and exits
+with the complete immutable submission. Read it in the current chat, then run
+`ack SUBMISSION_ID --session .workbench/topic-r01` and continue the conversation.
+No extra user click or paste is needed. The socket alone cannot start a turn in an
+idle host chat; an active tool wait is required.
 
-The user selected **B — Visible navigator**: a scrollable question sidebar beside
-the form, with Next visible in the footer. At narrow widths, a scrollable question
-picker replaces the sidebar. The [generated concepts](docs/ui-concepts/README.md)
-record the visual choice.
+Read the complete [agent protocol](skills/grilling-workbench/references/agent-protocol.md)
+and [question format](skills/grilling-workbench/references/questions.md) before
+using the tool. One directory belongs to one chat round. New rounds use new
+directories; reconnects use the original exact directory.
 
-## Required experience
+## Agreed behavior
 
-- Show complete questions, option descriptions, and trade-offs together.
-- Start unanswered. A recommendation is a label, never a preselected answer.
-- Render questions and individual options distinctly so native annotations can
-  target their content.
-- Preserve draft work across question-definition refreshes, navigation, and
-  reloads, with honest save/failure feedback. The treatment of answers whose
-  question or option meaning changes remains to be designed.
-- Show which questions have answers and whether the whole form has been submitted.
-  Navigation and answering later retain existing draft choices and text.
-- Start and remain a draft until the user explicitly submits the whole form.
-  Recommendations, navigation, and native annotations never submit decisions.
-- Submit the complete form directly in one click, with no review screen or extra
-  confirmation step. Users can navigate freely to revisit answers before submitting.
-  Blank answers are allowed and explicitly represented as not answered in the snapshot.
-- Keep Submit stable and usable during draft autosaves. Submission captures the
-  latest in-memory answers and saves pending edits before the complete form.
-- Automatically deliver the submitted form to the waiting agent in the same chat,
-  including all not-answered decisions. No further user click or paste is required.
-- Give questions, options, and submissions stable IDs. Retain immutable copies of
-  the exact submitted question versions and outcomes, and support retry without
-  creating another submission for the same ID.
+- The selected UI is B: a scrollable question sidebar beside the form, replaced
+  by a question picker on narrow screens. Next stays visible in the footer.
+- Show full questions, option descriptions, benefits, and trade-offs. Questions
+  and options remain individually targetable by native browser annotations.
+- Start unanswered. Recommendations label options and never select them.
+- Preserve drafts across navigation, reload, and question updates. Detect changes
+  to answer meaning and retain the previous wording; do not silently transfer
+  consent to changed options. Report save failures and preserve recoverable work.
+- Submit the whole form directly, once, with no review/confirmation screen or
+  partial submissions. Submit remains usable during draft autosaves and includes
+  the latest edits. Stable IDs make retries idempotent.
+- A submitted blank is an explicit `not_answered` outcome. Blank drafts, deferred
+  navigation, recommendations, and annotations never become project decisions.
+- Keep exact immutable question versions and all outcomes in each submission.
+- Emit completion over a socket only after saving. Replay unacknowledged forms
+  after reconnect; record a receipt only after the agent reads the snapshot.
+- Clarification, native Annotate/Quick Annotate, and every other conversation
+  happen in chat. The app has no clarification markers, resolution controls,
+  chatbot, or synchronization of host comments.
 
-## Testability requirement
+The parent interview workflow chooses questions and owns project decisions and
+records. This repository is independent of Inventor; its source and interview
+records remain outside this project's change scope. Only explicit user decisions
+settle requirements.
 
-Design the state-consistency logic for strong property-based testing from the
-start. Keep the transition logic independently testable from rendering,
-persistence, and chat handoff. Native annotations are outside application state.
-Complement generated action-sequence
-tests with focused integration and real-browser tests.
+## Development and evidence
 
-Candidate properties to refine with the state model:
+`npm run dev` retains the original reading-room demo at
+[localhost:4310](http://127.0.0.1:4310/), using `data/questions.json` and the existing
+`.workbench/session.json`. Use separate CLI sessions for real projects. Demo
+answers are never this project's requirements.
 
-- Initial state and recommendations never imply user consent.
-- Editing, annotation/clarification activity, navigation, and reload do not create
-  submitted decisions.
-- Every submission covers the entire question set at the submit click, including blanks;
-  the server rejects a subset or a snapshot prepared before the question set changed.
-- Failed persistence or handoff preserves recoverable drafts and reports failure.
-- Repeated delivery of the same submission cannot create duplicate decisions.
-- Submitted snapshots remain attributable to the exact question/option version;
-  later edits cannot silently rewrite an earlier submission.
-- Persisted-state round trips retain intended state, and displayed progress agrees
-  with the underlying answers after any supported action sequence.
+The pure state model has generated action-history tests plus HTTP, persistence,
+socket, and runtime integration tests. The package smoke test installs the actual
+archive offline in an unrelated directory and exercises the installed executable,
+skill installation, concurrent isolated sessions, full submission, receipt,
+definition updates, and restart. CI runs those commands for Node 22 and 24.
 
-These remain design/test obligations. The prototype exercises them through the
-tests and browser checks recorded in the [prototype guide](docs/prototype.md);
-that evidence is not a guarantee for every failure mode or host integration.
-
-## First implementation checkpoint
-
-Prove a small end-to-end scenario: view full options, draft an answer, annotate an
-option in the embedded browser, clarify in chat, return with the draft intact,
-reload, and explicitly submit the entire form with one answered question and
-another deliberately left blank. Verify that the socket wakes the waiting agent
-and carries both outcomes, without manual transfer. Also verify that agent edits to question definitions refresh
-the form while preserving draft work. Verify the host annotation workflow in the
-real embedded browser, not only in a mock; it requires no clarification state in
-the application.
-
-Long-term storage, question import/update format, and handling
-changed questions remain design questions. The prototype uses replaceable
-implementations to make those choices concrete. Keep publishing and billing out
-of this checkpoint.
+Earlier responsive-browser checks and known accessibility gaps are recorded in
+the [historical prototype report](docs/prototype.md). The [first design proposal](docs/design-proposal.md)
+is historical and superseded where it differs from the behavior above.

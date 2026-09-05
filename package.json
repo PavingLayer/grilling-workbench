@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "type": "module",
   "bin": { "grilling-workbench": "bin/grilling-workbench.js" },
-  "files": ["bin/", "src/", "public/", "data/questions.json", "skills/", "docs/deployment.md", "docs/agent-monitor.md", "docs/integration.md"],
+  "files": ["bin/", "src/", "public/", "data/questions.json", "skills/", "docs/*.md"],
   "engines": {
     "node": ">=22"
   },

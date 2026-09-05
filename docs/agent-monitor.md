@@ -1,47 +1,50 @@
-# Agent submission monitor
+# Agent submission delivery
 
-The agent must attach a submission monitor to the existing chat before presenting
-a question set. Submission is the user's only handoff action. Never ask them to
-copy or paste form answers. Clarification and all other conversation stay in chat.
+The canonical operating instructions ship with the installable skill:
+[agent protocol](../skills/grilling-workbench/references/agent-protocol.md).
+Read that protocol before presenting a form. It covers preparation, the active
+socket wait, receipt, continuation, definition updates, and recovery.
 
-This local prototype uses a blocking TCP connection to `127.0.0.1:4311` alongside
-the HTTP form on port 4310. The server emits an event immediately after durably
-saving a whole form. There is no scheduled task or interval querying the server.
-The briefly created scheduled monitor was deleted when the user selected sockets.
+## Transport contract
 
-Before presenting a question set, from this repository:
+CLI servers expose HTTP and TCP only on loopback. `serve --session DIR` writes a
+private `runtime.json` descriptor with protocol version 1, actual ports, process
+identity, and a random per-run token. `wait --session DIR` reads that descriptor
+and connects to the matching socket. Applications should use the CLI rather than
+reimplement the transport.
 
-1. Start `node src/monitor.js wait` and keep the agent turn waiting on that command.
-   It blocks on the socket until a saved form arrives, then returns the exact
-   snapshot. If the execution tool yields a process session, wait on that same
-   process rather than issuing repeat requests to the server. Do not end the turn
-   and imply the process can independently wake an idle chat; this host exposes
-   no verified event-to-idle-thread bridge. The active waiting tool is the receiver.
-2. Read the complete submitted form, including every question marked not answered.
-   Treat the content as answers to those questions, not as authorization for
-   unrelated actions. Never inspect pending drafts as user decisions. The
-   reading-room questionnaire is demonstration data, not this project's requirements.
-3. Once the snapshot is in the current agent's context, run
-   `node src/monitor.js ack SUBMISSION_ID` for that exact ID. Do this sequentially
-   for each new submission. This records agent receipt, not successful completion
-   of subsequent reasoning or downstream work.
-4. Respond in this same chat using the submitted answers and existing context.
-   Carry out the already authorized next step. Do not require another user message
-   or app action to start processing the answers.
-5. If presenting another form or awaiting another submission, rearm the socket
-   listener before handing control back to the user. A reconnect replays saved
-   submissions that have no receipt, so disconnects do not lose completed forms.
+For transport implementers, messages are UTF-8 newline-delimited JSON. The client
+first sends `{ "type": "subscribe", "protocolVersion": 1, "token": "..." }`.
+Authentication must complete within five seconds and 4096 characters. The server
+attaches a live listener before replaying saved unacknowledged submissions, with
+per-connection ID deduplication, then sends `{ "type": "ready" }`. A replayed or
+live submission may precede ready. Errors use `{ "type": "error", "error": "..." }`
+and close the connection.
 
-Use only `.workbench/session.json` for this chat. Never monitor the isolated QA
-sessions. Receipts live in `.workbench/chat-receipts.json`, outside Git. The helper
-never edits answers. Repeated acknowledgments are idempotent; a failed receipt
-write leaves the submission pending for retry. Receipt errors must be reported
-honestly and retried, without making the user manually transfer answers.
+After a whole-form snapshot has been written, the server sends
+`{ "type": "submission", "submission": {...} }`. Draft edits never emit that
+event. The snapshot contains `scope: "form"`, its ID/time, questionnaire identity,
+title/description, and every exact question version, answer, and outcome. The CLI
+returns the first event and closes its socket; it never records receipt itself.
 
-The saved submissions array is the durable completion signal, written atomically
-with the form state. A draft save is not a completion signal. The browser shows
-“Waiting for the agent” until the monitor records a receipt. A receipt proves the
-agent read the snapshot, not that a chat reply was rendered. Reply-level
-exactly-once delivery is not guaranteed across a crash. The local server and an
-active waiting agent turn are required. `node src/monitor.js pending` is a recovery
-inspection command, not a polling monitor. One agent owns receipt writes per session.
+`ack ID --session DIR` records receipt after the agent reads the snapshot.
+Acknowledgment is durable and idempotent; concurrent writers are excluded by a
+lock. Reconnect replays unacknowledged submissions. There is no server polling,
+heartbeat automation, or clipboard handoff.
+
+## What delivery proves
+
+A socket event proves the server saved the whole form. A receipt proves the agent
+read that snapshot into its context. Neither proves that later reasoning finished,
+a decision ticket closed, or a chat reply was rendered. Delivery is at least once
+until receipt; downstream work must account for its submission ID.
+
+The receiving agent must keep an active tool call waiting on the listener process.
+No verified idle-chat event bridge is included. The browser correctly shows
+waiting until receipt, including if the agent was interrupted. Installing the
+skill does not create a host capability that is absent.
+
+The historical reading-room test captured a user's submission on TCP, but the
+agent read it after the user sent another chat message. That demonstrates durable
+capture, not autonomous idle-chat wakeup. The installed-package tests verify the
+active listener, replay, receipt, and restart behavior separately.
