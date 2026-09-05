@@ -16,7 +16,7 @@ npm pack --pack-destination dist
 ```
 
 The result is `dist/grilling-workbench-0.2.0.tgz`. The explicit package allowlist
-excludes sessions, receipts, development dependencies, tests, and design images.
+excludes sessions, receipts, development dependencies, and tests.
 `npm run test:package` independently packs and installs an archive offline in a
 temporary project before exercising its executable and browser endpoints.
 
@@ -135,11 +135,10 @@ keeps the submission available for replay. A crash after receipt can leave
 unfinished downstream work; the immutable submission and chat/handoff record
 support recovery, but exactly-once replies are not guaranteed.
 
-## Existing checkout demo
+## Source checkout demo
 
-`npm run dev` continues to use `data/questions.json` and `.workbench/session.json`
-without migration or reset. `PORT` and `SIGNAL_PORT` override its defaults 4310 and
-4311 independently. After upgrading, restart it so both server and monitor use
-the new authenticated socket protocol. The compatibility helper
-`node src/monitor.js wait` reads its descriptor; `pending` and `ack ID` use the same
-original demo directory. New deployments use the CLI's initialized sessions.
+`npm run dev` serves the demo from `data/questions.json` and saves its answers in
+`.workbench/session.json`. `PORT` and `SIGNAL_PORT` override its defaults 4310 and
+4311 independently. The source-checkout helper `node src/monitor.js wait` reads
+the demo's runtime descriptor; `pending` and `ack ID` use the same demo directory.
+Use the CLI's initialized sessions for project interviews.

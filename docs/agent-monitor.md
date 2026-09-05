@@ -44,7 +44,5 @@ No verified idle-chat event bridge is included. The browser correctly shows
 waiting until receipt, including if the agent was interrupted. Installing the
 skill does not create a host capability that is absent.
 
-The historical reading-room test captured a user's submission on TCP, but the
-agent read it after the user sent another chat message. That demonstrates durable
-capture, not autonomous idle-chat wakeup. The installed-package tests verify the
-active listener, replay, receipt, and restart behavior separately.
+The [validation note](validation.md) records the checks for active delivery,
+replay, receipts, and restart, along with the limits of that evidence.

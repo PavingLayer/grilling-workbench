@@ -11,7 +11,7 @@ a browser form or enable a separate project preference.
 
 **0.2.0 is an installable local CLI package.** Node.js 22 or later is required.
 The supported deployment is a browser and agent on the same computer; no public
-server or idle-chat wakeup service is included. The project name is provisional.
+server or idle-chat wakeup service is included.
 
 ## Install in a project
 
@@ -69,39 +69,36 @@ and [question format](skills/grilling-workbench/references/questions.md) before
 using the tool. One directory belongs to one chat round. New rounds use new
 directories; reconnects use the original exact directory.
 
-## Agreed behavior
+## Answering a form
 
-- The selected UI is B: a scrollable question sidebar beside the form, replaced
-  by a question picker on narrow screens. Next stays visible in the footer.
-- Show full questions, option descriptions, benefits, and trade-offs. Questions
-  and options remain individually targetable by native browser annotations.
-- Start unanswered. Recommendations label options and never select them.
-- Preserve drafts across navigation, reload, and question updates. Detect changes
-  to answer meaning and retain the previous wording; do not silently transfer
-  consent to changed options. Report save failures and preserve recoverable work.
-- Submit the whole form directly, once, with no review/confirmation screen or
-  partial submissions. Submit remains usable during draft autosaves and includes
-  the latest edits. Stable IDs make retries idempotent.
-- A submitted blank is an explicit `not_answered` outcome. Blank drafts, deferred
-  navigation, recommendations, and annotations never become project decisions.
-- Keep exact immutable question versions and all outcomes in each submission.
-- Emit completion over a socket only after saving. Replay unacknowledged forms
-  after reconnect; record a receipt only after the agent reads the snapshot.
-- Clarification, native Annotate/Quick Annotate, and every other conversation
-  happen in chat. The app has no clarification markers, resolution controls,
-  chatbot, or synchronization of host comments.
+Navigate between questions using the sidebar, or the question picker on narrow
+screens. The footer keeps navigation and submission actions visible. Each question
+shows its full wording, options, benefits, and trade-offs. Recommendations are
+labels; every question starts unanswered.
 
-The parent interview workflow chooses questions and owns project decisions and
-records. This repository is independent of Inventor; its source and interview
-records remain outside this project's change scope. Only explicit user decisions
-settle requirements.
+Choices and notes save as drafts while you work. Drafts survive navigation,
+reloads, and question updates. If a question's meaning changes, the app retains
+your earlier answer and asks you to revisit the new wording. Save failures offer
+retry and recovery options.
+
+**Submit form** sends the entire round in one click, including edits still being
+saved. Questions left blank are reported as `not_answered`. Each submission keeps
+the exact question versions and answers; retries reuse its identity to prevent
+duplicates. Drafts become submitted outcomes only when you click Submit.
+
+After saving, the server delivers the submission to the waiting agent over a
+socket. Unacknowledged forms replay after a reconnect, and the page shows when the
+agent records receipt. The interview skill interprets answers and maintains the
+project's decision records.
+
+Use chat or native browser annotations to discuss questions and options. The
+agent can explain or revise them while your draft remains in the form.
 
 ## Development and evidence
 
-`npm run dev` retains the original reading-room demo at
-[localhost:4310](http://127.0.0.1:4310/), using `data/questions.json` and the existing
-`.workbench/session.json`. Use separate CLI sessions for real projects. Demo
-answers are never this project's requirements.
+`npm run dev` starts the reading-room demo at
+[localhost:4310](http://127.0.0.1:4310/), using `data/questions.json` and
+`.workbench/session.json`. Use separate CLI sessions for your interviews.
 
 The pure state model has generated action-history tests plus HTTP, persistence,
 socket, and runtime integration tests. The package smoke test installs the actual
