@@ -26,6 +26,10 @@ Choose an option and optionally add a note, or write an answer in your own words
 Move between questions freely. **Answer later** preserves the draft and adds a
 deferral indicator. It has no separate clearing prerequisite for submission.
 
+**Next question** is the primary action in the fixed footer, so navigation stays
+visible while reading long answers. **Review answers** remains secondary until
+the last question. Previous-question navigation also stays in the footer.
+
 **Review answers** becomes available after a draft has saved. The review starts
 with no answers selected. Choose answers to include, inspect the exact submission
 and the pending-question list, then explicitly submit. Only those answers appear
