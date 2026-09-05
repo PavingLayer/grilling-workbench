@@ -108,12 +108,3 @@ export function createWorkbenchServer({ dataDir = join(root, '.workbench'), ques
   server.drain = () => queue;
   return server;
 }
-
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const { startWorkbench, handleShutdown } = await import('./runtime.js');
-  try {
-    const running = await startWorkbench({ dataDir: join(root, '.workbench'), questionsPath: join(root, 'data/questions.json'), port: Number(process.env.PORT || 4310), signalPort: Number(process.env.SIGNAL_PORT || 4311) });
-    handleShutdown(running);
-    console.log(`Workbench: ${running.info.url}`);
-  } catch (error) { console.error(error.message); process.exitCode = 1; }
-}

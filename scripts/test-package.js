@@ -12,8 +12,8 @@ const temporary = await mkdtemp(join(tmpdir(), 'workbench-package-'));
 const consumer = join(temporary, 'unrelated project');
 const children = new Set();
 
-function launch(bin, args) {
-  const child = spawn(bin, args, { cwd: consumer, stdio: ['ignore', 'pipe', 'pipe'] });
+function launch(bin, args, env = process.env) {
+  const child = spawn(bin, args, { cwd: consumer, env, stdio: ['ignore', 'pipe', 'pipe'] });
   children.add(child);
   let stdout = '', stderr = '';
   const observers = new Set();
@@ -118,6 +118,11 @@ try {
   assert.equal(JSON.parse((await command(['status', '--session', session])).stdout).pending, 0);
   assert.equal((await restarted.stop()).code, 0);
   assert.equal((await second.stop()).code, 0);
+  const demo = launch(process.execPath, [join(installed, 'src/dev.js')], { ...process.env, PORT: '0', SIGNAL_PORT: '0' });
+  const demoOutput = await demo.until(out => /Workbench: http:\/\/127\.0\.0\.1:\d+\//.test(out));
+  const demoUrl = demoOutput.match(/http:\/\/127\.0\.0\.1:\d+\//)[0];
+  assert.equal((await fetch(demoUrl + 'api/health')).status, 200, 'Legacy demo entrypoint starts without module cycles');
+  assert.equal((await demo.stop()).code, 0);
   console.log(`Package smoke test passed: ${packed.filename}; offline install, skill installation, isolated sessions, socket submission, receipt, updates, and restart.`);
 } finally {
   for (const child of children) child.kill('SIGTERM');
