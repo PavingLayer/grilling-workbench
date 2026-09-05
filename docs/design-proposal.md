@@ -1,8 +1,9 @@
 # First checkpoint design proposal
 
-Status: draft for discussion, not accepted requirements. No application or tests
-have been implemented. The [README](../README.md) remains the source of agreed
-requirements. Only explicit user decisions can settle the choices below.
+Status: original design draft, not accepted requirements. A local prototype now
+implements provisional choices documented in the [prototype guide](prototype.md).
+The [README](../README.md) remains the source of agreed requirements. Only explicit
+user decisions can settle the choices below.
 
 ## Agreed clarification boundary
 
@@ -155,8 +156,10 @@ Record actual observations and any failed or unavailable steps. Ordinary browser
 automation may cover app interactions but cannot substitute for the host-comment
 round trip. The user's native annotation on the separate log-analysis page
 demonstrates the intended comment-to-chat interaction. It does not verify this
-workbench's draft retention, definition refresh, or submission behavior. The
-workbench checkpoint has not been run.
+workbench's draft retention, definition refresh, or submission behavior. Those
+app interactions have since been checked in the embedded browser, as recorded in
+the [prototype guide](prototype.md). A user-authored native annotation from this
+workbench and its clarification in chat remain the outstanding manual step.
 
 The official [Browser documentation](https://learn.chatgpt.com/docs/browser),
 checked September 5, 2026, describes local web-app previews and annotation by

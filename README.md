@@ -3,8 +3,14 @@
 A standalone question-answering workbench for design conversations, opened in
 the embedded browser alongside a subscription-backed ChatGPT/Codex chat.
 
-Status: project setup and requirements only. Application code, storage choices,
-frameworks, and tests have not been implemented. The project name is provisional.
+Status: a local prototype is implemented, with generated state tests and local
+server integration tests. Run `npm run dev` with Node.js 22 or later, then open
+[the local workbench](http://127.0.0.1:4310/). The project name is provisional.
+
+The [prototype guide](docs/prototype.md) records how to run it, update questions,
+and interpret the validation results and remaining limitations. Its storage,
+format, and handoff choices are provisional implementation choices for trying
+the experience, not newly accepted requirements.
 
 A [first checkpoint design proposal](docs/design-proposal.md) develops the state
 model, open choices, and verification plan. It is a draft, not accepted
@@ -85,7 +91,9 @@ Candidate properties to refine with the state model:
 - Persisted-state round trips retain intended state, and displayed progress agrees
   with the underlying answers after any supported action sequence.
 
-These are design/test obligations, not implemented guarantees or passing tests.
+These remain design/test obligations. The prototype exercises them through the
+tests and browser checks recorded in the [prototype guide](docs/prototype.md);
+that evidence is not a guarantee for every failure mode or host integration.
 
 ## First implementation checkpoint
 
@@ -97,6 +105,7 @@ the form while preserving draft work. Verify the host annotation workflow in the
 real embedded browser, not only in a mock; it requires no clarification state in
 the application.
 
-Storage, question import/update format, submission handoff, and handling changed
-questions are the next design questions. Keep publishing and billing out of this
-checkpoint.
+Long-term storage, question import/update format, submission handoff, and handling
+changed questions remain design questions. The prototype uses replaceable
+implementations to make those choices concrete. Keep publishing and billing out
+of this checkpoint.
