@@ -90,17 +90,45 @@ npx --no grilling-workbench install-skill
 Configure the agent to use that installed executable at the matching version;
 the bundled skill defaults to the version-pinned `npx` registry command.
 
-Maintainers publish the checked archive to npm and attach the same file to its
-GitHub release. After the source commit is pushed and GitHub checks pass:
+### Publishing through GitHub Actions
+
+[Publish npm](../.github/workflows/publish.yml) publishes stable GitHub releases
+through [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
+It checks out the release tag, verifies its package version, runs the full test
+suite, and builds the archive. An existing GitHub attachment must match exactly;
+otherwise the workflow attaches the archive before publishing those same bytes
+to npm. A retry skips publishing only if npm already has the identical archive.
+
+Configure this trusted publisher once in the npm package's Settings tab:
+
+| Setting | Value |
+| --- | --- |
+| Provider | GitHub Actions |
+| Organization or user | `PavingLayer` |
+| Repository | `grilling-workbench` |
+| Workflow filename | `publish.yml` |
+| Environment name | `npm` |
+| Allowed action | Direct publishing with `npm publish` |
+
+npm requires account verification to change these settings. The workflow uses
+the `npm` GitHub environment and OIDC; it needs no `NPM_TOKEN` or `NODE_AUTH_TOKEN`
+secret. Node 24 and a pinned npm CLI provide trusted-publishing support. The
+workflow has permission to attach release archives and request an OIDC token.
+
+After bumping the package version and updating the docs and bundled skill pins,
+push the source and wait for GitHub checks. Create a stable `vVERSION` GitHub
+release to trigger publishing. For an existing release, or to retry:
 
 ```sh
-npm publish ./dist/grilling-workbench-0.3.0.tgz --access public
+gh workflow run publish.yml --ref main -f tag=v0.3.0 -f dry_run=true
+gh workflow run publish.yml --ref main -f tag=v0.3.0 -f dry_run=false
 ```
 
-Publication requires an authenticated npm account with publishing access. For
-later releases, increment the package version and update the pinned commands in
-the docs and bundled skill before running these checks. Never overwrite a
-published version or run mixed versions within a round.
+Manual runs must use `main` and a published stable release tag. Dry runs validate
+the archive without uploading or publishing it. The first command is useful for
+checking setup before enabling the trusted publisher. Follow the run through its
+final npm integrity check to confirm publication. Never overwrite a published
+version or run mixed versions within a round.
 
 ## Session lifecycle
 
