@@ -48,6 +48,42 @@ installation, not automatic selection by an agent.
 
 ## Embedded-browser checks
 
+### Vim keyboard controls
+
+The keyboard-control change passed syntax validation, all 24 automated tests,
+and both package smoke tests on September 6, 2026. Six keyboard tests exercise
+an answer-and-submit workflow, dialog isolation, `gg` timing and focus resets,
+held-key suppression for mutations, composition and native-key passthrough,
+disabled shortcuts, and command mappings. The package tests verify that the
+new keyboard module is included and served by the installed application.
+
+An isolated demo session was checked in the embedded browser at the default
+1280×720 viewport and at 320×740, using the keyboard for:
+
+- Moving focus without selecting, selecting a radio with Enter, and toggling
+  multiple choices with number keys and Space; focus survives saved edits.
+- Entering multiline notes containing shortcut characters, leaving Insert mode,
+  and submitting all three question types directly from the text field.
+- Navigating the question picker, opening submission history, expanding submitted
+  answers, and focusing and scrolling the submitted text. Question navigation
+  and submission shortcuts do not act behind an open dialog.
+- Disabling Vim shortcuts, reloading to verify the remembered setting, then
+  using Tab, Enter, and Space to reopen the guide and enable them again.
+- Opening the narrow-screen question picker, inspecting the shortcut guide
+  without horizontal overflow, and returning focus when dialogs close.
+- Expanding an earlier answer and keeping it after a definition refresh;
+  clearing an answer and its notes; and moving on with Answer later.
+- Reaching both recovery actions during a simulated save failure, then retrying
+  successfully after restoring the question definitions. The recovery download
+  control was activated, but the embedded runner did not report a download event;
+  recovery-file delivery was not verified in this keyboard pass.
+
+The browser checks are manual integration evidence; the automated keyboard tests
+cover the command interpreter rather than browser focus or layout. Screen-reader
+and non-Chromium keyboard checks remain outstanding.
+
+### Earlier interface checks
+
 The implemented interface has been checked in the embedded browser for:
 
 - A 20-question form at 808×1139, with independently scrolling navigation and

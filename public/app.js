@@ -48,7 +48,7 @@ function replaceContent(element, html) {
   const focused = rememberFocus(element), scroll = element.scrollTop;
   element.innerHTML = html;
   element.scrollTop = scroll;
-  if (focused && !restoreFocus(focused)) document.querySelector('#question-title')?.focus({ preventScroll: true });
+  if (focused && !restoreFocus(focused)) focusControl(document.querySelector('#question-title'));
 }
 
 function toast(message) {
@@ -132,7 +132,7 @@ function render() {
   renderChrome();
   document.querySelector('.main').scrollTop = mainScroll;
   document.querySelector('#sidebar-questions').scrollTop = sidebarScroll;
-  if (focused && !restoreFocus(focused)) document.querySelector('#question-title').focus({ preventScroll: true });
+  if (focused && !restoreFocus(focused)) focusControl(document.querySelector('#question-title'));
   updateKeyboardMode();
 }
 
