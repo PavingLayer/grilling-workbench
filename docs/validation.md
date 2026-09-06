@@ -10,6 +10,11 @@ Version 0.3.0 adds arrow and Vim keyboard navigation, focus preservation, and a
 shortcut guide. State schema 1 and socket protocol 1 are unchanged. Keyboard
 checks and remaining browser-validation limits are recorded below.
 
+The 0.3.0 release passed a clean `npm ci`, syntax validation, all 27 tests, and
+both offline-install and npx package smoke tests locally on Linux with Node.js
+22.22.2 on September 6, 2026. GitHub Actions runs the release checks on Node 22
+and 24 for the published source commit.
+
 The 0.2.0 and 0.2.1 release checks passed locally on Linux with Node.js 22.22.2 on September
 6, 2026 (UTC): syntax validation, 18 automated tests, and both installed-package
 and `npx` smoke tests. CI runs the same checks on Node 22 and 24; see
