@@ -126,7 +126,7 @@ kbd { font: inherit; font-family: ui-monospace, monospace; border: 1px solid var
 .shortcut-list dd { margin: 0; }
 .shortcut-setting { display: flex; align-items: center; gap: 10px; font-size: .875rem; }
 .shortcut-setting input { width: 20px; height: 20px; accent-color: var(--blue); }
-.vim-disabled .option-key, .vim-disabled .keyboard-hint, .vim-disabled #answer-keyboard-hint { display: none; }
+.vim-disabled .option-key { display: none; }
 .footer-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; }
 .footer-buttons.last-question { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .footer-buttons .button { min-height: 46px; }

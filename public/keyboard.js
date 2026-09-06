@@ -4,13 +4,13 @@ export function createKeyboard({ context, run, now = Date.now }) {
   const reset = () => { firstG = null; };
   function keydown(event) {
     const { enabled, editing, modal } = context();
-    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.altKey || !enabled) return reset();
+    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.altKey) return reset();
     const key = event.key;
     let command, value;
     if (event.ctrlKey || event.metaKey) {
       reset();
       if (key === 'Enter' && !event.shiftKey && !modal) command = 'submit';
-      else if (event.ctrlKey && !event.metaKey && !event.shiftKey && !editing && ['d', 'u'].includes(key)) {
+      else if (enabled && event.ctrlKey && !event.metaKey && !event.shiftKey && !editing && ['d', 'u'].includes(key)) {
         command = 'scroll'; value = key === 'd' ? 1 : -1;
       } else return;
     } else if (editing) {
@@ -20,14 +20,20 @@ export function createKeyboard({ context, run, now = Date.now }) {
     } else {
       const previousG = firstG;
       reset();
-      if (key === 'g') {
+      if (!event.shiftKey && (key === 'ArrowDown' || key === 'ArrowUp')) { command = 'move'; value = key === 'ArrowDown' ? 1 : -1; }
+      else if (!event.shiftKey && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+        if (modal) return;
+        command = 'navigate'; value = key === 'ArrowRight' ? 1 : -1;
+      }
+      else if (key === 'Enter' && !event.shiftKey) command = 'activate';
+      else if (key === 'Escape') command = modal ? 'close' : 'leave-edit';
+      else if (!enabled) return;
+      else if (key === 'g') {
         if (event.repeat) { event.preventDefault(); return; }
         if (previousG !== null && now() - previousG < 1000) { command = 'edge'; value = -1; }
         else { firstG = now(); event.preventDefault(); return; }
       } else if (key === 'G') { command = 'edge'; value = 1; }
       else if (key === 'j' || key === 'k') { command = 'move'; value = key === 'j' ? 1 : -1; }
-      else if (key === 'Enter') command = 'activate';
-      else if (key === 'Escape') command = modal ? 'close' : 'leave-edit';
       else if (!modal) {
         if (key === 'h' || key === 'l') { command = 'navigate'; value = key === 'l' ? 1 : -1; }
         else if (/^[1-9]$/.test(key)) { command = 'choose'; value = Number(key) - 1; }

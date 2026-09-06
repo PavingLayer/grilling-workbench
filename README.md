@@ -74,8 +74,11 @@ screens. The footer keeps navigation and submission actions visible. Each questi
 shows its full wording, options, benefits, and trade-offs. Recommendations are
 labels; every question starts unanswered.
 
-The form supports Vim-style keyboard control. Use `j` / `k` to focus options and
-buttons, `Enter` or `Space` to activate them, and `h` / `l` to change questions.
+The form supports arrow keys and Vim-style keyboard control. Use `↓` / `↑`
+(or `j` / `k`) to focus options and buttons, `Enter` or `Space` to activate them,
+and `←` / `→` (or `h` / `l`) to change questions. Moving focus does not select
+an option. Use Tab or Shift+Tab to reach the answer field; arrows move the text
+cursor normally while typing.
 `1`–`9` chooses or toggles an option; `i` focuses your answer or notes and `Esc`
 returns to navigation. `Ctrl+Enter` (or `Cmd+Enter`) submits the whole form,
 including while typing. `q` opens the question picker, `H` opens submission
@@ -84,9 +87,9 @@ current answer and notes. `gg` / `G` focuses the first / last control, and
 `Ctrl+d` / `Ctrl+u` scrolls half a page. Dialogs keep navigation inside them.
 
 The footer shows Normal or Insert mode. Open **Keys ?** (or press `?` outside a
-text field) for the guide and an option to disable shortcuts, remembered in this
-browser. Text fields use normal editing keys; Tab, Shift+Tab, and native controls
-remain available for every action.
+text field) for the guide and an option to disable Vim shortcuts, remembered in
+this browser. Arrow navigation, Tab, Shift+Tab, Enter, Space, Esc, and
+Ctrl/Cmd+Enter remain available with Vim shortcuts turned off.
 
 Choices and notes save as drafts while you work. Drafts survive navigation,
 reloads, and question updates. If a question's meaning changes, the app retains

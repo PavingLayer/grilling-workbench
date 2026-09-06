@@ -60,21 +60,69 @@ test('held keys navigate without repeated selection, clearing or submission', ()
   assert.deepEqual(commands, [['move', 1], ['navigate', -1], ['scroll', 1]]);
 });
 
-test('composition, browser shortcuts, selection keys and disabled Vim pass through', () => {
+test('composition, browser shortcuts, selection keys and disabled Vim letters pass through', () => {
   const { commands, press, mode } = setup();
   for (const options of [{ isComposing: true }, { keyCode: 229 }, { altKey: true }, { metaKey: true }, { ctrlKey: true }]) {
     assert.equal(press('j', options), false);
   }
   press('j', { defaultPrevented: true });
   assert.equal(press('Enter', { ctrlKey: true, shiftKey: true }), false);
-  for (const key of ['Tab', 'ArrowDown', 'ArrowLeft', ' ', 'Home', 'End']) assert.equal(press(key), false);
+  for (const key of ['Tab', ' ', 'Home', 'End']) assert.equal(press(key), false);
   assert.equal(press('f', { ctrlKey: true }), false);
   mode.editing = true;
   assert.equal(press('u', { ctrlKey: true }), false);
   mode.enabled = false;
-  for (const key of ['j', 'x', '?', 'Escape']) assert.equal(press(key), false);
-  assert.equal(press('Enter', { metaKey: true }), false);
+  mode.editing = false;
+  for (const key of ['j', 'x', '?', 'i', 'q', 'H', 'b', 'd', 'g', 'G', '1']) assert.equal(press(key), false);
+  assert.equal(press('d', { ctrlKey: true }), false);
   assert.deepEqual(commands, []);
+});
+
+test('arrow navigation and standard activation work with Vim enabled or disabled', () => {
+  for (const enabled of [true, false]) {
+    const { mode, commands, press } = setup();
+    mode.enabled = enabled;
+    for (const key of ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape']) assert.equal(press(key), true);
+    press('ArrowDown', { repeat: true });
+    press('ArrowRight', { repeat: true });
+    press('Enter', { ctrlKey: true });
+    press('Enter', { metaKey: true });
+    assert.deepEqual(commands, [
+      ['move', 1], ['move', -1], ['navigate', -1], ['navigate', 1],
+      ['activate', undefined], ['leave-edit', undefined], ['move', 1], ['navigate', 1],
+      ['submit', undefined], ['submit', undefined],
+    ]);
+  }
+});
+
+test('arrows preserve cursor movement, text selection, modifiers and composition', () => {
+  for (const enabled of [true, false]) {
+    const { mode, commands, press } = setup();
+    mode.enabled = enabled;
+    for (const key of ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight']) {
+      for (const options of [{ shiftKey: true }, { ctrlKey: true }, { metaKey: true }, { altKey: true }, { isComposing: true }, { keyCode: 229 }]) {
+        assert.equal(press(key, options), false);
+      }
+      mode.editing = true;
+      assert.equal(press(key), false);
+      assert.equal(press(key, { shiftKey: true }), false);
+      mode.editing = false;
+    }
+    assert.deepEqual(commands, []);
+  }
+});
+
+test('arrow navigation stays inside dialogs even with Vim disabled', () => {
+  for (const enabled of [true, false]) {
+    const { mode, commands, press } = setup();
+    Object.assign(mode, { enabled, modal: true });
+    press('ArrowDown'); press('ArrowUp');
+    assert.equal(press('ArrowLeft'), false);
+    assert.equal(press('ArrowRight'), false);
+    assert.equal(press('Enter', { ctrlKey: true }), false);
+    press('Enter'); press('Escape');
+    assert.deepEqual(commands, [['move', 1], ['move', -1], ['activate', undefined], ['close', undefined]]);
+  }
 });
 
 test('navigation, scroll and form actions have distinct mappings', () => {
