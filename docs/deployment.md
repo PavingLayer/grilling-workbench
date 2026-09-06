@@ -98,6 +98,8 @@ It checks out the release tag, verifies its package version, runs the full test
 suite, and builds the archive. An existing GitHub attachment must match exactly;
 otherwise the workflow attaches the archive before publishing those same bytes
 to npm. A retry skips publishing only if npm already has the identical archive.
+The final integrity check waits up to five minutes for npm processing and retries
+temporary registry responses; an archive mismatch fails immediately.
 
 Configure this trusted publisher once in the npm package's Settings tab:
 

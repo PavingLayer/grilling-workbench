@@ -157,9 +157,23 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
+          import { setTimeout as delay } from 'node:timers/promises';
           const url = `https://registry.npmjs.org/grilling-workbench/${process.env.PACKAGE_VERSION}`;
-          const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
-          assert.equal(response.status, 200, 'The published npm version is not available.');
-          assert.equal((await response.json()).dist.integrity, process.env.PACKAGE_INTEGRITY);
+          const deadline = Date.now() + 5 * 60 * 1000;
+          let verified = false;
+          while (Date.now() < deadline) {
+            const response = await fetch(url, { signal: AbortSignal.timeout(Math.max(1, Math.min(30000, deadline - Date.now()))) });
+            if (response.status === 200) {
+              assert.equal((await response.json()).dist.integrity, process.env.PACKAGE_INTEGRITY);
+              verified = true;
+              break;
+            }
+            assert.ok(response.status === 404 || response.status === 429 || response.status >= 500,
+              `Cannot verify npm publication: HTTP ${response.status}`);
+            await response.body?.cancel();
+            console.log(`Waiting for npm processing (HTTP ${response.status})...`);
+            await delay(Math.max(0, Math.min(10000, deadline - Date.now())));
+          }
+          assert.ok(verified, 'The published npm version was not available within five minutes.');
           console.log(`Verified grilling-workbench@${process.env.PACKAGE_VERSION}`);
           JS
