@@ -11,9 +11,17 @@ const exec = promisify(execFile);
 const temporary = await mkdtemp(join(tmpdir(), 'workbench-package-'));
 const consumer = join(temporary, 'unrelated project');
 const children = new Set();
+const useNpx = process.argv.includes('--npx');
+let cliPrefix = [];
+
+function stopChild(child) {
+  // npm starts the executable as a child; stop the complete CLI process session.
+  if (process.platform !== 'win32') process.kill(-child.pid, 'SIGTERM');
+  else child.kill('SIGTERM');
+}
 
 function launch(bin, args, env = process.env) {
-  const child = spawn(bin, args, { cwd: consumer, env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(bin, bin === 'npx' ? [...cliPrefix, ...args] : args, { cwd: consumer, env, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'] });
   children.add(child);
   let stdout = '', stderr = '';
   const observers = new Set();
@@ -36,7 +44,7 @@ function launch(bin, args, env = process.env) {
     };
     observers.add(check); check();
   });
-  return { child, finished, until, stop: async () => { child.kill('SIGTERM'); return finished; } };
+  return { child, finished, until, stop: async () => { stopChild(child); return finished; } };
 }
 
 try {
@@ -45,11 +53,19 @@ try {
   const files = packed.files.map(f => f.path);
   for (const file of ['bin/grilling-workbench.js', 'public/app.js', 'src/core.js', 'skills/grilling-workbench/SKILL.md', 'skills/grilling-workbench/references/agent-protocol.md']) assert(files.includes(file), `Missing packaged file ${file}`);
   assert(!files.some(f => /^(test|node_modules|\.workbench)\//.test(f) || f.endsWith('.png')), 'No tests, private sessions, dependencies, or mockups ship');
-  await exec('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false', '--cache', join(temporary, 'cache'), join(temporary, packed.filename)], { cwd: consumer });
-  const installed = join(consumer, 'node_modules/grilling-workbench');
-  const bin = join(consumer, 'node_modules/.bin/grilling-workbench');
-  const command = args => exec(bin, args, { cwd: consumer });
+  const cache = join(temporary, 'cache');
+  let installed = join(consumer, 'node_modules/grilling-workbench');
+  const bin = useNpx ? 'npx' : join(consumer, 'node_modules/.bin/grilling-workbench');
+  if (useNpx) cliPrefix = ['--yes', '--offline', '--ignore-scripts', '--cache', cache, '--package', join(temporary, packed.filename), 'grilling-workbench'];
+  else await exec('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false', '--cache', cache, join(temporary, packed.filename)], { cwd: consumer });
+  const command = args => exec(bin, [...cliPrefix, ...args], { cwd: consumer });
   assert.equal((await command(['--version'])).stdout.trim(), '0.2.0');
+  if (useNpx) {
+    const { readdir } = await import('node:fs/promises');
+    const entries = await readdir(join(cache, '_npx'));
+    assert.equal(entries.length, 1, 'The CLI uses its isolated npm execution cache');
+    installed = join(cache, '_npx', entries[0], 'node_modules/grilling-workbench');
+  }
   assert.match((await command(['--help'])).stdout, /wait --session/);
   await assert.rejects(command(['wait']), /--session DIR is required/);
   await command(['install-skill']);
@@ -111,20 +127,24 @@ try {
   await writeFile(revisedPath, '{broken');
   await assert.rejects(command(['update', '--session', session, '--questions', revisedPath]));
   assert.equal(JSON.parse(await readFile(questionFile, 'utf8')).questions[0].context, changed.questions[0].context);
-  assert.equal((await server.stop()).code, 0);
+  const stopped = await server.stop();
+  assert.equal(stopped.code, useNpx ? null : 0);
   await assert.rejects(readFile(join(session, 'runtime.json')), { code: 'ENOENT' });
   const restarted = launch(bin, ['serve', '--session', session]);
   await restarted.until(out => { try { return JSON.parse(out).status === 'ready'; } catch { return false; } });
   assert.equal(JSON.parse((await command(['status', '--session', session])).stdout).pending, 0);
-  assert.equal((await restarted.stop()).code, 0);
-  assert.equal((await second.stop()).code, 0);
+  assert.equal((await restarted.stop()).code, useNpx ? null : 0);
+  assert.equal((await second.stop()).code, useNpx ? null : 0);
   const demo = launch(process.execPath, [join(installed, 'src/dev.js')], { ...process.env, PORT: '0', SIGNAL_PORT: '0' });
   const demoOutput = await demo.until(out => /Workbench: http:\/\/127\.0\.0\.1:\d+\//.test(out));
   const demoUrl = demoOutput.match(/http:\/\/127\.0\.0\.1:\d+\//)[0];
   assert.equal((await fetch(demoUrl + 'api/health')).status, 200, 'Legacy demo entrypoint starts without module cycles');
   assert.equal((await demo.stop()).code, 0);
-  console.log(`Package smoke test passed: ${packed.filename}; offline install, skill installation, isolated sessions, socket submission, receipt, updates, and restart.`);
+  if (useNpx) {
+    for (const path of ['package.json', 'package-lock.json', 'node_modules']) await assert.rejects(readFile(join(consumer, path)), { code: 'ENOENT' });
+  }
+  console.log(`Package smoke test passed: ${packed.filename}; ${useNpx ? 'npx without project dependencies' : 'offline install'}, skill installation, isolated sessions, socket submission, receipt, updates, and restart.`);
 } finally {
-  for (const child of children) child.kill('SIGTERM');
+  for (const child of children) stopChild(child);
   await rm(temporary, { recursive: true, force: true });
 }

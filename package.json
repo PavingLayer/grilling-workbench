@@ -15,7 +15,7 @@
     "start": "node src/dev.js",
     "check": "node --check bin/grilling-workbench.js && node --check src/dev.js && node --check src/cli.js && node --check src/runtime.js && node --check src/core.js && node --check src/server.js && node --check src/storage.js && node --check src/delivery.js && node --check src/monitor.js && node --check src/submission-socket.js && node --check public/app.js",
     "test": "node --test test/*.test.js",
-    "test:package": "node scripts/test-package.js"
+    "test:package": "node scripts/test-package.js && node scripts/test-package.js --npx"
   },
   "devDependencies": {
     "fast-check": "^4.9.0"
