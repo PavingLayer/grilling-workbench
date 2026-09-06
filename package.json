@@ -2,7 +2,7 @@
   "name": "grilling-workbench",
   "version": "0.2.0",
   "description": "Local question forms with whole-form submission and event-driven agent delivery",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PavingLayer/grilling-workbench.git"

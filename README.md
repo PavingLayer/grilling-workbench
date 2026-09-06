@@ -30,6 +30,7 @@ version for setup and every command in a round.
 
 Source: [PavingLayer/grilling-workbench](https://github.com/PavingLayer/grilling-workbench).
 Package: [grilling-workbench on npm](https://www.npmjs.com/package/grilling-workbench).
+License: [MIT](LICENSE).
 
 The [deployment guide](docs/deployment.md) covers non-Node projects, session
 storage, updates, shutdown, backups, and recovery. The [integration guide](docs/integration.md)
