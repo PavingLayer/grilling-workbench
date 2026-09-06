@@ -1,9 +1,15 @@
 {
   "name": "grilling-workbench",
-  "private": true,
   "version": "0.2.0",
   "description": "Local question forms with whole-form submission and event-driven agent delivery",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PavingLayer/grilling-workbench.git"
+  },
+  "homepage": "https://github.com/PavingLayer/grilling-workbench#readme",
+  "bugs": { "url": "https://github.com/PavingLayer/grilling-workbench/issues" },
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
   "type": "module",
   "bin": { "grilling-workbench": "bin/grilling-workbench.js" },
   "files": ["bin/", "src/", "public/", "data/questions.json", "skills/", "docs/*.md"],

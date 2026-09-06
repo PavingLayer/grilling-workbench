@@ -9,36 +9,27 @@ Once installed, the skill applies whenever the agent interviews the user. Callin
 an interview skill such as `grill-me` is enough; the user does not need to request
 a browser form or enable a separate project preference.
 
-**0.2.0 is an installable local CLI package.** Node.js 22 or later is required.
+**Run with `npx`; no project dependency is required.** Node.js 22 or later is required.
 The supported deployment is a browser and agent on the same computer; no public
 server or idle-chat wakeup service is included.
 
 ## Install in a project
 
-Build a distributable archive from this repository:
+From the project where you want to use the workbench:
 
 ```sh
-npm ci
-npm run check
-npm test
-npm run test:package
-mkdir -p dist
-npm pack --pack-destination dist
-```
-
-Then, from the consuming project:
-
-```sh
-npm install --save-dev /absolute/path/grilling-workbench-0.2.0.tgz
-npx --no-install grilling-workbench install-skill
+npx --yes grilling-workbench@0.2.0 install-skill
 ```
 
 The installer creates `.agents/skills/grilling-workbench` and refuses to overwrite
 an existing skill. Codex detects new skills automatically; restart it if the skill
 does not appear. Explicit `$grilling-workbench` invocation can verify installation;
-normal interview use should select it automatically. The package is not published
-to a registry yet; use the archive, not an unverified registry package with the
-same name.
+normal interview use should select it automatically. npm caches the application;
+the skill and interview sessions remain in your project. Use the same pinned
+version for setup and every command in a round.
+
+Source: [PavingLayer/grilling-workbench](https://github.com/PavingLayer/grilling-workbench).
+Package: [grilling-workbench on npm](https://www.npmjs.com/package/grilling-workbench).
 
 The [deployment guide](docs/deployment.md) covers non-Node projects, session
 storage, updates, shutdown, backups, and recovery. The [integration guide](docs/integration.md)
@@ -47,15 +38,15 @@ explains skill discovery and project configuration alongside Matt Pocock's skill
 ## Agent workflow
 
 ```sh
-npx --no-install grilling-workbench init --session .workbench/topic-r01 --questions /absolute/path/round.json
-npx --no-install grilling-workbench serve --session .workbench/topic-r01
+npx --yes grilling-workbench@0.2.0 init --session .workbench/topic-r01 --questions /absolute/path/round.json
+npx --yes grilling-workbench@0.2.0 serve --session .workbench/topic-r01
 ```
 
 Keep the server process running. In a second persistent process, **before showing
 the URL returned by serve**:
 
 ```sh
-npx --no-install grilling-workbench wait --session .workbench/topic-r01
+npx --yes grilling-workbench@0.2.0 wait --session .workbench/topic-r01
 ```
 
 Keep the agent turn waiting on that process. The listener blocks on TCP and exits
@@ -100,9 +91,18 @@ agent can explain or revise them while your draft remains in the form.
 [localhost:4310](http://127.0.0.1:4310/), using `data/questions.json` and
 `.workbench/session.json`. Use separate CLI sessions for your interviews.
 
+To develop from a source checkout:
+
+```sh
+npm ci
+npm run check
+npm test
+npm run test:package
+```
+
 The pure state model has generated action-history tests plus HTTP, persistence,
 socket, and runtime integration tests. The package smoke test installs the actual
-archive offline in an unrelated directory and exercises the installed executable,
+archive offline and through `npx` in unrelated directories and exercises the executable,
 skill installation, concurrent isolated sessions, full submission, receipt,
 definition updates, and restart. CI runs those commands for Node 22 and 24.
 

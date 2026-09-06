@@ -14,16 +14,16 @@ and agent must run on the same computer.
 From the project where you want to use it:
 
 ```sh
-npm install --save-dev /absolute/path/grilling-workbench-0.2.0.tgz
-npx --no-install grilling-workbench install-skill
+npx --yes grilling-workbench@0.2.0 install-skill
 ```
 
-Replace the archive path with your downloaded or locally built release. The first
-command installs the application; the second installs the instructions that teach
-the agent when and how to use it. It creates `.agents/skills/grilling-workbench`
-and preserves any existing skill at that path.
+This fetches the application into npm's cache and installs the instructions that
+teach the agent when and how to use it. It creates `.agents/skills/grilling-workbench`
+and preserves any existing skill at that path. No `package.json`, project
+dependency, or global installation is required, including in non-Node projects.
+The skill uses the same pinned package version for subsequent commands.
 
-For building the archive, installation in a non-Node project, or upgrades, use the
+For offline installation, source development, or upgrades, use the
 [deployment guide](deployment.md). Keep your existing interview skills installed;
 Matt Pocock's repository has its own [installation instructions](https://github.com/mattpocock/skills).
 
@@ -105,7 +105,7 @@ rules. It is optional; the skill already defines the interview trigger.
 Whenever interviewing the user, use the grilling-workbench skill at
 `.agents/skills/grilling-workbench/SKILL.md`. Apply it alongside the current
 interview workflow, including grill-me, without requiring a request for a browser
-form. The command is `npx --no-install grilling-workbench`.
+form. The command is `npx --yes grilling-workbench@0.2.0`.
 
 Read the skill's operating protocol before presenting questions. Keep reasoning,
 clarification, and decision records in the existing workflow. Respect an explicit
@@ -113,7 +113,7 @@ user request for another interface.
 ```
 
 The installer does not edit project instructions automatically. Adjust the command
-in the snippet if you use a global installation.
+in the snippet if you explicitly configure a local or global installation.
 
 ## Check answer delivery in your agent
 
@@ -134,12 +134,12 @@ explanations about an existing option should continue in chat.
 
 ## Share it with another project
 
-Distribute the release archive, which includes the matching application and skill,
-and repeat the setup above. The skill's instructions alone do not install the
-application or provide browser and command-execution tools.
+Share [PavingLayer/grilling-workbench](https://github.com/PavingLayer/grilling-workbench)
+and repeat the one-command setup above. npm includes the matching application and
+skill; browser and command-execution tools must be supplied by the agent host.
 
-For a future hosted repository release, `skills/grilling-workbench/SKILL.md` uses
-a layout recognized by the [Skills CLI](https://github.com/vercel-labs/skills#skill-discovery).
-Users could then install it with `skills add <repository> --skill grilling-workbench`
-using the actual published repository address. Public release destinations and
-licensing are still separate decisions; see [distribution and installation](deployment.md#distribution-and-installation).
+The repository also exposes `skills/grilling-workbench/SKILL.md` in a layout
+recognized by the [Skills CLI](https://github.com/vercel-labs/skills#skill-discovery).
+The npm `install-skill` command is the primary setup path because it bundles the
+skill with the same exact application release. Offline users can instead share
+the release archive; see [distribution and installation](deployment.md#distribution-and-installation).

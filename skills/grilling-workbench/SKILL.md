@@ -19,11 +19,13 @@ skill on its own.
 Before presenting a round, read [the agent protocol](references/agent-protocol.md).
 When authoring or changing questions, read [the question format](references/questions.md).
 
-The executable is `grilling-workbench` on PATH, or
-`npx --no-install grilling-workbench` for a project installation. Check `--version`;
-this skill ships with package 0.2.x and socket protocol 1. If unavailable, locate
-the project's configured installation. Do not fetch an unrelated same-name
-registry package or silently substitute manual copy/paste.
+Run `npx --yes grilling-workbench@0.2.0` for every CLI command. This uses the
+public npm package maintained at `https://github.com/PavingLayer/grilling-workbench`
+without adding a project dependency. Check `--version`; this skill ships with
+package 0.2.0 and socket protocol 1. Keep the exact version throughout a round;
+do not use `@latest` or an unversioned command. An explicitly configured local or
+global installation is also supported when its version matches. If installation
+or registry access fails, report it rather than substituting manual copy/paste.
 
 ## Essential rules
 
