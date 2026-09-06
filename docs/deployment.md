@@ -1,6 +1,6 @@
 # Local deployment
 
-Version 0.2.1 ships on public npm with a CLI, static browser files,
+Version 0.3.0 ships on public npm with a CLI, static browser files,
 a demo questionnaire, operational docs, and the integration skill. It needs Node
 22+ and no production dependencies or build service. Linux with Node 22.22.2 was
 verified locally. CI is configured for Node 22 and 24 on Linux; other operating
@@ -13,7 +13,7 @@ Run this from any project, including a non-Node project:
 ```sh
 npx skills@latest add PavingLayer/grilling-workbench \
   --skill grilling-workbench --agent codex
-npx --yes grilling-workbench@0.2.1 --version
+npx --yes grilling-workbench@0.3.0 --version
 ```
 
 The [Skills CLI](https://github.com/vercel-labs/skills) installs the skill from
@@ -21,9 +21,9 @@ GitHub into `.agents/skills/grilling-workbench` and records its source in
 `skills-lock.json`. The command targets Codex; omit `--agent codex` to choose
 another agent. No project dependency or global installation is required.
 
-`@latest` selects the installer version; the skill pins the application to `0.2.1`.
+`@latest` selects the installer version; the skill pins the application to `0.3.0`.
 The version check above fetches that application into npm's execution cache.
-Keep `@0.2.1` on every application command so the server and listener use the
+Keep `@0.3.0` on every application command so the server and listener use the
 release required by the skill. Initial setup needs npm registry and GitHub access;
 use an explicit archive installation when reliable offline availability matters.
 
@@ -37,7 +37,7 @@ The public npm package is
 To install the skill bundled with a specific application release, use:
 
 ```sh
-npx --yes grilling-workbench@0.2.1 install-skill
+npx --yes grilling-workbench@0.3.0 install-skill
 ```
 
 Run this from each project that should discover it. The default target is
@@ -49,14 +49,14 @@ create a Skills CLI lockfile.
 If you prefer a project dependency:
 
 ```sh
-npm install --save-dev --save-exact grilling-workbench@0.2.1
+npm install --save-dev --save-exact grilling-workbench@0.3.0
 npx --no grilling-workbench install-skill
 ```
 
 Or explicitly install the executable globally:
 
 ```sh
-npm install --global grilling-workbench@0.2.1
+npm install --global grilling-workbench@0.3.0
 grilling-workbench --version
 grilling-workbench install-skill
 ```
@@ -74,7 +74,7 @@ mkdir -p dist
 npm pack --pack-destination dist
 ```
 
-The result is `dist/grilling-workbench-0.2.1.tgz`. The explicit package allowlist
+The result is `dist/grilling-workbench-0.3.0.tgz`. The explicit package allowlist
 excludes sessions, receipts, development dependencies, and tests. The package
 tests exercise both an offline project installation and `npx` execution from an
 isolated cache, including full form delivery, updates, shutdown, and restart.
@@ -83,7 +83,7 @@ Building the archive does not publish it.
 Offline consumers can install the archive as a project dependency or globally:
 
 ```sh
-npm install --offline --save-dev /absolute/path/grilling-workbench-0.2.1.tgz
+npm install --offline --save-dev /absolute/path/grilling-workbench-0.3.0.tgz
 npx --no grilling-workbench install-skill
 ```
 
@@ -94,7 +94,7 @@ Maintainers publish the checked archive to npm and attach the same file to its
 GitHub release. After the source commit is pushed and GitHub checks pass:
 
 ```sh
-npm publish ./dist/grilling-workbench-0.2.1.tgz --access public
+npm publish ./dist/grilling-workbench-0.3.0.tgz --access public
 ```
 
 Publication requires an authenticated npm account with publishing access. For
@@ -110,8 +110,8 @@ an absolute path when resuming from another directory. `init` refuses any existi
 directory, so it cannot reset a previous form accidentally.
 
 ```sh
-npx --yes grilling-workbench@0.2.1 init --session .workbench/topic-r01 --questions /absolute/path/round.json
-npx --yes grilling-workbench@0.2.1 serve --session .workbench/topic-r01
+npx --yes grilling-workbench@0.3.0 init --session .workbench/topic-r01 --questions /absolute/path/round.json
+npx --yes grilling-workbench@0.3.0 serve --session .workbench/topic-r01
 ```
 
 Both servers bind exclusively to `127.0.0.1`. By default the OS assigns free HTTP
@@ -170,7 +170,7 @@ new exact package version, compare its bundled skill with the installed copy, an
 restart `serve` at that version against the same directory. Update a local or
 global installation explicitly if you use one. To inspect a skill upgrade without overwriting
 customizations, use `install-skill --target /path/to/new-empty-directory` and merge
-changes deliberately. State schema 1 is retained in 0.2.1; unsupported state
+changes deliberately. State schema 1 is retained in 0.3.0; unsupported state
 versions and corrupt files fail without resetting answers.
 
 When upgrading a skill through the Skills CLI, review its changes and use the

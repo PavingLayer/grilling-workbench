@@ -1,6 +1,6 @@
 {
   "name": "grilling-workbench",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Local question forms with whole-form submission and event-driven agent delivery",
   "license": "MIT",
   "repository": {
