@@ -14,16 +14,22 @@ and agent must run on the same computer.
 From the project where you want to use it:
 
 ```sh
-npx --yes grilling-workbench@0.2.0 install-skill
+npx skills@latest add PavingLayer/grilling-workbench \
+  --skill grilling-workbench --agent codex
 ```
 
-This fetches the application into npm's cache and installs the instructions that
-teach the agent when and how to use it. It creates `.agents/skills/grilling-workbench`
-and preserves any existing skill at that path. No `package.json`, project
-dependency, or global installation is required, including in non-Node projects.
-The skill uses the same pinned package version for subsequent commands.
+The [Skills CLI](https://github.com/vercel-labs/skills) fetches the skill from GitHub
+and installs the instructions that teach the agent when and how to use the
+workbench. For Codex, it creates `.agents/skills/grilling-workbench` and records the
+source in `skills-lock.json`. Omit `--agent codex` to choose another agent.
+No `package.json`, project dependency, or global installation is required,
+including in non-Node projects.
 
-For offline installation, source development, or upgrades, use the
+`@latest` applies to the skill installer. The skill pins application commands to
+`grilling-workbench@0.2.0`; npm downloads that application into its cache when the
+agent first runs it. Keep the same exact application version throughout a round.
+
+For exact-release or offline installation, source development, or upgrades, use the
 [deployment guide](deployment.md). Keep your existing interview skills installed;
 Matt Pocock's repository has its own [installation instructions](https://github.com/mattpocock/skills).
 
@@ -84,8 +90,8 @@ the workbench.
 First check whether `grilling-workbench` appears in the agent's available skills.
 In Codex, that list combines applicable project skills, user skills, administrator
 and system skills, and enabled plugin skills. It does not automatically include
-local skills from unrelated projects. Our installer adds the workbench at the
-current project's `.agents/skills/grilling-workbench` path.
+local skills from unrelated projects. The setup command above adds the workbench
+at the current project's `.agents/skills/grilling-workbench` path.
 
 Codex normally detects new skills automatically. If it is missing, restart Codex
 and check the installed path. If it appears more than once, inspect the source
@@ -135,11 +141,9 @@ explanations about an existing option should continue in chat.
 ## Share it with another project
 
 Share [PavingLayer/grilling-workbench](https://github.com/PavingLayer/grilling-workbench)
-and repeat the one-command setup above. npm includes the matching application and
-skill; browser and command-execution tools must be supplied by the agent host.
+and repeat the Skills CLI setup above. The skill supplies the pinned application
+command; browser and command-execution tools must be supplied by the agent host.
 
-The repository also exposes `skills/grilling-workbench/SKILL.md` in a layout
-recognized by the [Skills CLI](https://github.com/vercel-labs/skills#skill-discovery).
-The npm `install-skill` command is the primary setup path because it bundles the
-skill with the same exact application release. Offline users can instead share
-the release archive; see [distribution and installation](deployment.md#distribution-and-installation).
+The bundled npm `install-skill` command remains an alternative when you want the
+skill from an exact application release or need an offline archive. See
+[distribution and installation](deployment.md#distribution-and-installation).

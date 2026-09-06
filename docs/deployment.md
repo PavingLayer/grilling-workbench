@@ -11,20 +11,40 @@ systems have not been release-tested.
 Run this from any project, including a non-Node project:
 
 ```sh
-npx --yes grilling-workbench@0.2.0 install-skill
+npx skills@latest add PavingLayer/grilling-workbench \
+  --skill grilling-workbench --agent codex
 npx --yes grilling-workbench@0.2.0 --version
 ```
 
-npm fetches the application into its execution cache. Only the installed skill
-and the sessions you create live in the consuming project; no project dependency
-or global installation is required. Keep `@0.2.0` on every command so the skill,
-server, and listener use the same release. npm needs registry access on first use;
+The [Skills CLI](https://github.com/vercel-labs/skills) installs the skill from
+GitHub into `.agents/skills/grilling-workbench` and records its source in
+`skills-lock.json`. The command targets Codex; omit `--agent codex` to choose
+another agent. No project dependency or global installation is required.
+
+`@latest` selects the installer version; the skill pins the application to `0.2.0`.
+The version check above fetches that application into npm's execution cache.
+Keep `@0.2.0` on every application command so the server and listener use the
+release required by the skill. Initial setup needs npm registry and GitHub access;
 use an explicit archive installation when reliable offline availability matters.
 
 Source and releases are maintained at
 [PavingLayer/grilling-workbench](https://github.com/PavingLayer/grilling-workbench).
 The public npm package is
 [grilling-workbench](https://www.npmjs.com/package/grilling-workbench).
+
+### Bundled installer for an exact release
+
+To install the skill bundled with a specific application release, use:
+
+```sh
+npx --yes grilling-workbench@0.2.0 install-skill
+```
+
+Run this from each project that should discover it. The default target is
+`.agents/skills/grilling-workbench`. `--target DIR` supports another host's skill
+directory. This command copies the bundled skill; it does not edit AGENTS.md,
+install upstream skills, or overwrite existing skills. This installer does not
+create a Skills CLI lockfile.
 
 If you prefer a project dependency:
 
@@ -38,12 +58,8 @@ Or explicitly install the executable globally:
 ```sh
 npm install --global grilling-workbench@0.2.0
 grilling-workbench --version
+grilling-workbench install-skill
 ```
-
-Run the setup command from each project that should discover it.
-The default target is `.agents/skills/grilling-workbench`. `--target DIR` supports
-another host's skill directory. This command copies the bundled skill; it does
-not edit AGENTS.md, install upstream skills, or overwrite existing skills.
 
 ### Offline archives and maintainer releases
 
@@ -156,6 +172,11 @@ global installation explicitly if you use one. To inspect a skill upgrade withou
 customizations, use `install-skill --target /path/to/new-empty-directory` and merge
 changes deliberately. State schema 1 is retained in 0.2.0; unsupported state
 versions and corrupt files fail without resetting answers.
+
+When upgrading a skill through the Skills CLI, review its changes and use the
+exact application version required by the updated skill for subsequent rounds.
+Finish active rounds with their original skill instructions and application
+version before upgrading.
 
 Back up `config.json`, `questions.json`, `session.json`, and `chat-receipts.json`
 with the server and receipt writer stopped. Restore those files into a private

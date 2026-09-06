@@ -18,15 +18,21 @@ server or idle-chat wakeup service is included.
 From the project where you want to use the workbench:
 
 ```sh
-npx --yes grilling-workbench@0.2.0 install-skill
+npx skills@latest add PavingLayer/grilling-workbench \
+  --skill grilling-workbench --agent codex
 ```
 
-The installer creates `.agents/skills/grilling-workbench` and refuses to overwrite
-an existing skill. Codex detects new skills automatically; restart it if the skill
+The [Skills CLI](https://github.com/vercel-labs/skills) installs the skill from
+GitHub into `.agents/skills/grilling-workbench` and records its source in
+`skills-lock.json`. This command targets Codex; omit `--agent codex` to choose
+another agent. Codex detects new skills automatically; restart it if the skill
 does not appear. Explicit `$grilling-workbench` invocation can verify installation;
-normal interview use should select it automatically. npm caches the application;
-the skill and interview sessions remain in your project. Use the same pinned
-version for setup and every command in a round.
+normal interview use should select it automatically.
+
+`@latest` selects the skill installer version. The installed skill pins application
+commands to `grilling-workbench@0.2.0`, which npm fetches into its cache when run.
+Keep that exact application version throughout a round. The bundled `install-skill`
+command remains available for [exact-release and offline installation](docs/deployment.md#bundled-installer-for-an-exact-release).
 
 Source: [PavingLayer/grilling-workbench](https://github.com/PavingLayer/grilling-workbench).
 Package: [grilling-workbench on npm](https://www.npmjs.com/package/grilling-workbench).

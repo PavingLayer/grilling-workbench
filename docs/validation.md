@@ -28,11 +28,20 @@ The automated tests cover:
 
 The package smoke test packs the actual release and exercises it twice: installed
 offline in an unrelated project, and through `npx` from an isolated cache in a
-project without package files or dependencies. Both modes verify skill
+project without package files or dependencies. Both modes verify bundled skill
 installation without overwriting an existing copy, two isolated sessions, served
 browser assets, whole-form delivery, acknowledgments, definition updates, restart,
 and the source-checkout demo entrypoint. The `npx` test uses the local archive,
 so registry publication and a fresh registry download are separate release checks.
+
+The recommended Skills CLI installation was separately checked on September 6,
+2026 (UTC), with Skills CLI 1.5.23 and Node.js 22.22.2. In a clean temporary project,
+`npx skills@latest add PavingLayer/grilling-workbench --skill grilling-workbench --agent codex`
+was run with confirmation accepted through `--yes`. It installed the skill and
+both reference files matching the repository, created `skills-lock.json`, and
+added no `package.json`, `package-lock.json`, or `node_modules`. The installed
+skill retained its `grilling-workbench@0.2.0` application pin. This check verifies
+installation, not automatic selection by an agent.
 
 ## Embedded-browser checks
 
