@@ -6,6 +6,21 @@ use the [deployment guide](deployment.md).
 
 ## Automated checks
 
+Version 0.3.0 was published to npm using GitHub Actions OIDC on September 6,
+2026, with signed provenance. npm's `latest` tag resolves to `0.3.0`, and its
+archive integrity matches the GitHub release attachment. A fresh public-registry
+download through `npx` in an unrelated temporary directory returned `0.3.0`
+and installed the bundled skill with the matching application version pin.
+
+The [initial publishing run](https://github.com/PavingLayer/grilling-workbench/actions/runs/34048446541)
+passed all tests and published successfully, but its immediate availability
+check received HTTP 404 while npm processed the package. The workflow now waits
+up to five minutes for availability. Actionlint and focused checks covered
+transient responses, timeout, immediate integrity mismatch, and authorization
+failure. The [subsequent release run](https://github.com/PavingLayer/grilling-workbench/actions/runs/34048644861)
+completed successfully, verifying the already-published archive without
+republishing it.
+
 The OIDC publishing workflow passed actionlint validation and a
 [GitHub Actions dry run](https://github.com/PavingLayer/grilling-workbench/actions/runs/34041793536)
 for `v0.3.0` on September 6, 2026. It ran the tagged source's 27 tests and both
