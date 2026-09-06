@@ -84,6 +84,19 @@ and non-Chromium keyboard checks remain outstanding.
 
 ### Earlier interface checks
 
+The arrow-navigation follow-up passed syntax validation, all 27 tests, and both
+package smoke tests on September 6, 2026. Three additional tests cover arrow
+navigation with Vim enabled and disabled, native cursor/selection and modifier
+behavior, and dialog isolation. Standard activation, Escape, and Ctrl/Cmd+Enter
+also remain available when Vim shortcuts are disabled.
+
+In a separate embedded-browser demo, Up/Down moved focus without changing radio
+answers, Enter and Space selected radios and checkboxes, and Left/Right changed
+questions. Tab reached multiline text; arrows and Shift+Arrow moved and selected
+text without changing questions. With Vim disabled, arrow navigation, dialog
+isolation, and submission from the text field were verified. The user's demo was
+refreshed after its save indicator reported Saved.
+
 The implemented interface has been checked in the embedded browser for:
 
 - A 20-question form at 808×1139, with independently scrolling navigation and
