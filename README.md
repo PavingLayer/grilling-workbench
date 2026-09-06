@@ -74,6 +74,20 @@ screens. The footer keeps navigation and submission actions visible. Each questi
 shows its full wording, options, benefits, and trade-offs. Recommendations are
 labels; every question starts unanswered.
 
+The form supports Vim-style keyboard control. Use `j` / `k` to focus options and
+buttons, `Enter` or `Space` to activate them, and `h` / `l` to change questions.
+`1`–`9` chooses or toggles an option; `i` focuses your answer or notes and `Esc`
+returns to navigation. `Ctrl+Enter` (or `Cmd+Enter`) submits the whole form,
+including while typing. `q` opens the question picker, `H` opens submission
+history, `b` toggles the sidebar, `d` moves on to answer later, and `x` clears the
+current answer and notes. `gg` / `G` focuses the first / last control, and
+`Ctrl+d` / `Ctrl+u` scrolls half a page. Dialogs keep navigation inside them.
+
+The footer shows Normal or Insert mode. Open **Keys ?** (or press `?` outside a
+text field) for the guide and an option to disable shortcuts, remembered in this
+browser. Text fields use normal editing keys; Tab, Shift+Tab, and native controls
+remain available for every action.
+
 Choices and notes save as drafts while you work. Drafts survive navigation,
 reloads, and question updates. If a question's meaning changes, the app retains
 your earlier answer and asks you to revisit the new wording. Save failures offer
@@ -82,7 +96,7 @@ retry and recovery options.
 **Submit form** sends the entire round in one click, including edits still being
 saved. Questions left blank are reported as `not_answered`. Each submission keeps
 the exact question versions and answers; retries reuse its identity to prevent
-duplicates. Drafts become submitted outcomes only when you click Submit.
+duplicates. Drafts become submitted outcomes only when you explicitly submit the form.
 
 After saving, the server delivers the submission to the waiting agent over a
 socket. Unacknowledged forms replay after a reconnect, and the page shows when the

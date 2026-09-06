@@ -8,7 +8,7 @@ import { readReceipts } from './delivery.js';
 export { atomicWrite } from './storage.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const publicFiles = { '/': ['public/index.html', 'text/html'], '/app.js': ['public/app.js', 'text/javascript'], '/styles.css': ['public/styles.css', 'text/css'], '/core.js': ['src/core.js', 'text/javascript'] };
+const publicFiles = { '/': ['public/index.html', 'text/html'], '/app.js': ['public/app.js', 'text/javascript'], '/keyboard.js': ['public/keyboard.js', 'text/javascript'], '/styles.css': ['public/styles.css', 'text/css'], '/core.js': ['src/core.js', 'text/javascript'] };
 
 export function createWorkbenchServer({ dataDir = join(root, '.workbench'), questionsPath = join(root, 'data/questions.json'), write = atomicWrite } = {}) {
   const statePath = join(dataDir, 'session.json');

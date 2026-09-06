@@ -1,4 +1,5 @@
 import { transition, draftFor, questionById, hasAnswer, isStale, statusFor, progress, formSubmitted, makeReview as makeSubmission, formatSubmission } from '/core.js';
+import { createKeyboard } from '/keyboard.js';
 
 const app = document.querySelector('#app');
 const dialog = document.querySelector('#app-dialog');
@@ -6,6 +7,9 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': 
 let state, version, currentId, running = false, error = '', conflict = false, connectionWarning = '';
 let pending = [], shownSubmission = null, receivedIds = new Set();
 let toastTimer, modalMode = '', refreshing = false, sidebarCollapsed = false;
+let dialogReturnFocus = null;
+let vimEnabled = true;
+try { vimEnabled = localStorage.getItem('workbench-vim') !== 'off'; } catch { /* Storage can be unavailable in embedded browsers. */ }
 const narrowViewport = matchMedia('(max-width: 640px)');
 const iconPaths = {
   check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
@@ -17,6 +21,35 @@ const iconPaths = {
   right: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
 };
 const icon = name => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${iconPaths[name]}</svg>`;
+
+function rememberFocus(root) {
+  const element = document.activeElement;
+  if (!element || !root.contains(element)) return null;
+  const attribute = ['id', 'data-action', 'data-go', 'data-modal', 'data-submission'].find(name => element.hasAttribute(name));
+  if (!attribute) return null;
+  const region = element.closest('.footer-bar, #sidebar-questions');
+  const prefix = region ? (region.id ? `#${region.id} ` : '.footer-bar ') : '';
+  return {
+    selector: `${prefix}[${attribute}="${CSS.escape(element.getAttribute(attribute))}"]`,
+    selection: element.id === 'answer-text' ? [element.selectionStart, element.selectionEnd, element.selectionDirection] : null,
+  };
+}
+
+function restoreFocus(saved, root = document) {
+  const element = saved && root.querySelector(saved.selector);
+  if (!element || element.disabled || !element.getClientRects().length) return false;
+  element.focus({ preventScroll: true });
+  if (saved.selection) element.setSelectionRange(...saved.selection);
+  return true;
+}
+
+function replaceContent(element, html) {
+  if (element.innerHTML === html) return;
+  const focused = rememberFocus(element), scroll = element.scrollTop;
+  element.innerHTML = html;
+  element.scrollTop = scroll;
+  if (focused && !restoreFocus(focused)) document.querySelector('#question-title')?.focus({ preventScroll: true });
+}
 
 function toast(message) {
   const notice = document.querySelector('#notice');
@@ -59,7 +92,7 @@ function renderChrome() {
   document.querySelector('#compact-progress').textContent = `${stats.answered} of ${stats.total} answered · ${formSubmitted(state) ? 'Form submitted' : `${stats.total - stats.answered} not answered`}`;
   const sidebar = document.querySelector('#sidebar-questions');
   const list = questionItems();
-  if (sidebar.innerHTML !== list) { const scroll = sidebar.scrollTop; sidebar.innerHTML = list; sidebar.scrollTop = scroll; }
+  replaceContent(sidebar, list);
   document.querySelector('#question-badges').innerHTML = badge(currentId);
   document.querySelector('[data-action="clear"]').disabled = !hasAnswer(draftFor(state, currentId));
   document.querySelector('#history-button').textContent = `Submissions (${state.submissions.length})`;
@@ -68,7 +101,7 @@ function renderChrome() {
   document.querySelector('#submit-form').disabled = conflict || pending.some(item => item.action.type === 'submit');
   const warning = document.querySelector('#save-warning');
   warning.hidden = !error && !connectionWarning;
-  warning.innerHTML = warning.hidden ? '' : `<p>${escape(error || connectionWarning)} Your work in this tab is retained. Unsaved changes will be lost if you close or reload it.</p><button class="button small" data-action="${conflict ? 'load-saved' : 'retry'}">${conflict ? 'Load saved version…' : 'Retry saving'}</button><button class="button small" data-action="recover">Download recovery copy</button>`;
+  replaceContent(warning, warning.hidden ? '' : `<p>${escape(error || connectionWarning)} Your work in this tab is retained. Unsaved changes will be lost if you close or reload it.</p><button class="button small" data-action="${conflict ? 'load-saved' : 'retry'}">${conflict ? 'Load saved version…' : 'Retry saving'}</button><button class="button small" data-action="recover">Download recovery copy</button>`);
 }
 
 function oldAnswer(draft) {
@@ -77,8 +110,7 @@ function oldAnswer(draft) {
 
 function render() {
   if (!state) return;
-  const focused = document.activeElement;
-  const textFocus = focused?.id === 'answer-text' ? { start: focused.selectionStart, end: focused.selectionEnd } : null;
+  const focused = rememberFocus(app);
   const mainScroll = document.querySelector('.main')?.scrollTop || 0;
   const sidebarScroll = document.querySelector('#sidebar-questions')?.scrollTop || 0;
   currentId = questionById(state, currentId) ? currentId : state.questionnaire.questions[0].id;
@@ -92,15 +124,16 @@ function render() {
     <main class="main"><div class="form-content"><p class="compact-progress" id="compact-progress"></p>
     <div id="save-warning" class="alert" role="alert" hidden></div>
     <article class="question-sheet" id="question" aria-labelledby="question-title"><div class="question-meta"><span class="question-position">Question ${index + 1} of ${state.questionnaire.questions.length}</span><button class="button small question-selector" id="question-selector" data-action="questions" aria-haspopup="dialog" aria-controls="app-dialog">Question ${index + 1} of ${state.questionnaire.questions.length} <span aria-hidden="true">▾</span></button><span id="question-badges"></span></div><h1 id="question-title" tabindex="-1">${escape(q.title)}</h1><p class="question-context">${escape(q.context)}</p>
-    ${stale ? `<div class="alert"><p><strong>This question was updated.</strong> Your earlier answer is kept below. ${canAdopt ? 'Review the new wording, then keep or edit your answer.' : 'An earlier choice is no longer available. Choose a new answer to continue.'}</p><details><summary>Earlier question and answer</summary><div class="old-answer">${escape(oldAnswer(draft))}</div></details>${canAdopt ? '<button class="button small" data-action="adopt">Keep my answer with this wording</button>' : ''}</div>` : ''}
-    ${q.type !== 'text' ? `<p class="answer-hint">${q.type === 'single' ? 'Choose one, or write your own answer below.' : 'Choose any that apply, or write your own answer below.'}</p><fieldset class="options" aria-labelledby="question-title">${q.options.map(o => `<label class="option ${draft.optionIds.includes(o.id) ? 'selected' : ''}" id="option-${escape(q.id)}-${escape(o.id)}"><span class="option-top"><input type="${q.type === 'single' ? 'radio' : 'checkbox'}" name="answer-option" value="${escape(o.id)}" ${draft.optionIds.includes(o.id) ? 'checked' : ''} aria-labelledby="label-${escape(q.id)}-${escape(o.id)}"><span class="option-title" id="label-${escape(q.id)}-${escape(o.id)}">${escape(o.label)}</span>${o.recommended ? '<span class="badge recommended">Recommended</span>' : ''}</span><div class="option-body"><p class="option-description">${escape(o.description)}</p><div class="tradeoffs"><p><strong class="offers">${icon('check')} Offers</strong><span>${escape(o.benefit)}</span></p><p><strong class="tradeoff">${icon('balance')} Trade-off</strong><span>${escape(o.tradeoff)}</span></p></div></div></label>`).join('')}</fieldset>` : ''}
-    <label for="answer-text" class="field-label">${q.type === 'text' ? 'Your answer' : 'Your answer <span class="optional">In your own words</span>'}</label><textarea id="answer-text" maxlength="20000" rows="${q.type === 'text' ? 7 : 3}">${escape(draft.text)}</textarea>
+    ${stale ? `<div class="alert"><p><strong>This question was updated.</strong> Your earlier answer is kept below. ${canAdopt ? 'Review the new wording, then keep or edit your answer.' : 'An earlier choice is no longer available. Choose a new answer to continue.'}</p><details><summary id="earlier-answer">Earlier question and answer</summary><div class="old-answer">${escape(oldAnswer(draft))}</div></details>${canAdopt ? '<button class="button small" data-action="adopt">Keep my answer with this wording</button>' : ''}</div>` : ''}
+    ${q.type !== 'text' ? `<p class="answer-hint">${q.type === 'single' ? 'Choose one, or write your own answer below.' : 'Choose any that apply, or write your own answer below.'}</p><fieldset class="options" aria-labelledby="question-title">${q.options.map((o, optionIndex) => `<label class="option ${draft.optionIds.includes(o.id) ? 'selected' : ''}" id="option-${escape(q.id)}-${escape(o.id)}"><span class="option-top"><input id="answer-option-${escape(q.id)}-${escape(o.id)}" type="${q.type === 'single' ? 'radio' : 'checkbox'}" name="answer-option" value="${escape(o.id)}" ${draft.optionIds.includes(o.id) ? 'checked' : ''} aria-labelledby="label-${escape(q.id)}-${escape(o.id)}"><span class="option-title" id="label-${escape(q.id)}-${escape(o.id)}">${escape(o.label)}</span>${optionIndex < 9 ? `<kbd class="option-key" aria-hidden="true">${optionIndex + 1}</kbd>` : ''}${o.recommended ? '<span class="badge recommended">Recommended</span>' : ''}</span><div class="option-body"><p class="option-description">${escape(o.description)}</p><div class="tradeoffs"><p><strong class="offers">${icon('check')} Offers</strong><span>${escape(o.benefit)}</span></p><p><strong class="tradeoff">${icon('balance')} Trade-off</strong><span>${escape(o.tradeoff)}</span></p></div></div></label>`).join('')}</fieldset>` : ''}
+    <label for="answer-text" class="field-label">${q.type === 'text' ? 'Your answer' : 'Your answer <span class="optional">In your own words</span>'}</label><textarea id="answer-text" aria-describedby="answer-keyboard-hint" maxlength="20000" rows="${q.type === 'text' ? 7 : 3}">${escape(draft.text)}</textarea><p class="field-hint" id="answer-keyboard-hint">Type normally. <kbd>Esc</kbd> returns to navigation.</p>
     <div class="question-actions"><button class="button" data-action="defer">${icon('clock')}Answer later</button><button class="button" data-action="clear" ${hasAnswer(draft) ? '' : 'disabled'}>${icon('clear')}Clear answer</button></div></article></div></main>
-    </div><footer class="footer-bar"><nav class="footer-buttons ${index === state.questionnaire.questions.length - 1 ? 'last-question' : ''}" aria-label="Question navigation"><button class="button previous-question" ${index > 0 ? `data-go="${escape(state.questionnaire.questions[index - 1].id)}"` : 'disabled'} aria-label="Previous question">${icon('left')}<span>Previous</span></button><button class="button ${index === state.questionnaire.questions.length - 1 ? 'primary' : ''}" id="submit-form" data-action="submit">${icon('check')}Submit form</button>${index < state.questionnaire.questions.length - 1 ? `<button class="button primary" data-go="${escape(state.questionnaire.questions[index + 1].id)}">Next question ${icon('right')}</button>` : ''}</nav></footer>`;
+    </div><footer class="footer-bar"><div class="keyboard-bar"><span id="keyboard-mode" class="keyboard-mode" role="status"></span><span class="keyboard-hint"><kbd>j</kbd> / <kbd>k</kbd> move · <kbd>i</kbd> write</span><button class="keyboard-help" data-action="keys" aria-haspopup="dialog" aria-controls="app-dialog">Keys <kbd>?</kbd></button></div><nav class="footer-buttons ${index === state.questionnaire.questions.length - 1 ? 'last-question' : ''}" aria-label="Question navigation"><button class="button previous-question" ${index > 0 ? `data-go="${escape(state.questionnaire.questions[index - 1].id)}"` : 'disabled'} aria-label="Previous question">${icon('left')}<span>Previous</span></button><button class="button ${index === state.questionnaire.questions.length - 1 ? 'primary' : ''}" id="submit-form" data-action="submit">${icon('check')}Submit form</button>${index < state.questionnaire.questions.length - 1 ? `<button class="button primary" data-go="${escape(state.questionnaire.questions[index + 1].id)}">Next question ${icon('right')}</button>` : ''}</nav></footer>`;
   renderChrome();
   document.querySelector('.main').scrollTop = mainScroll;
   document.querySelector('#sidebar-questions').scrollTop = sidebarScroll;
-  if (textFocus) { const field = document.querySelector('#answer-text'); field.focus({ preventScroll: true }); field.setSelectionRange(textFocus.start, textFocus.end); }
+  if (focused && !restoreFocus(focused)) document.querySelector('#question-title').focus({ preventScroll: true });
+  updateKeyboardMode();
 }
 
 function stage(action, redraw = true) {
@@ -175,18 +208,21 @@ app.addEventListener('click', event => {
   if (action === 'submit') submitForm();
   if (action === 'questions') showQuestions();
   if (action === 'history') showHistory();
+  if (action === 'keys') showKeys();
   if (action === 'recover') downloadRecovery();
   if (action === 'retry') retry();
   if (action === 'load-saved') loadSaved();
 });
 
 function openDialog(html, mode) {
+  const focused = dialog.open && modalMode === mode ? rememberFocus(dialog) : null;
+  if (!dialog.open) dialogReturnFocus = rememberFocus(document);
   modalMode = mode;
   dialog.innerHTML = html;
   if (!dialog.open) dialog.showModal();
   const heading = dialog.querySelector('#dialog-title');
   heading.tabIndex = -1;
-  heading.focus({ preventScroll: true });
+  if (!restoreFocus(focused, dialog)) heading.focus({ preventScroll: true });
 }
 const dialogHead = (title, description = '') => `<div class="dialog-head"><div><h2 id="dialog-title">${title}</h2>${description ? `<p>${description}</p>` : ''}</div><button class="close" data-modal="close" aria-label="Close dialog">×</button></div>`;
 
@@ -204,6 +240,102 @@ function questionItems() {
     return `<button class="nav-item ${q.id === currentId ? 'active' : ''} ${status} " data-go="${escape(q.id)}" title="${escape(q.title)}" ${q.id === currentId ? 'aria-current="step"' : ''}><span class="nav-dot" aria-hidden="true">${status === 'submitted' ? '✓' : ''}</span><span class="nav-number">${String(index + 1).padStart(2, '0')}</span><span class="nav-text"><span class="nav-title">${escape(state.questionnaire.navigationLabels?.[q.id] || q.title)}</span><span class="nav-status">${answered ? 'Answered' : 'Not answered'}${updated ? ' · Updated' : ''}</span></span></button>`;
   }).join('');
 }
+
+function showKeys() {
+  const shortcuts = [
+    ['j / k', 'Focus the next / previous option or button'],
+    ['gg / G', 'Focus the first / last control'],
+    ['Enter / Space', 'Activate the focused control'],
+    ['h / l', 'Previous / next question'],
+    ['1–9', 'Choose or toggle an option'],
+    ['i', 'Write your answer or notes'],
+    ['Esc', 'Leave the text field or close a dialog'],
+    ['Ctrl / ⌘ + Enter', 'Submit the entire form, including while typing'],
+    ['Ctrl + d / u', 'Scroll down / up half a page'],
+    ['q', 'Open the question picker'],
+    ['H', 'Open submission history'],
+    ['b', 'Toggle the sidebar or open the question picker'],
+    ['d', 'Answer later'],
+    ['x', 'Clear this answer and its notes'],
+    ['?', 'Open this guide'],
+  ];
+  openDialog(`${dialogHead('Keyboard shortcuts', 'Vim-style navigation. Typing in the answer field uses your normal text editing keys.')}<div class="dialog-body"><p>Use <kbd>j</kbd> / <kbd>k</kbd> to reach every form action, including recovery and updated answers. In dialogs, navigation stays inside the dialog. <kbd>Tab</kbd> / <kbd>Shift + Tab</kbd> and native control keys also work.</p><dl class="shortcut-list">${shortcuts.map(([keys, description]) => `<div><dt><kbd>${keys}</kbd></dt><dd>${description}</dd></div>`).join('')}</dl><label class="shortcut-setting"><input id="vim-enabled" type="checkbox" ${vimEnabled ? 'checked' : ''}> Enable Vim shortcuts</label><p class="field-hint">Turn off shortcuts to use only standard browser and assistive-technology keys.</p></div><div class="dialog-foot"><button class="button primary" data-modal="close">Back to form</button></div>`, 'keys');
+}
+
+const isEditing = element => element?.matches('textarea, select, input:not([type="radio"]):not([type="checkbox"]):not([type="button"]):not([type="submit"])') || element?.isContentEditable;
+
+function updateKeyboardMode() {
+  document.body.classList.toggle('vim-disabled', !vimEnabled);
+  const mode = document.querySelector('#keyboard-mode');
+  if (mode) mode.textContent = !vimEnabled ? 'Vim off' : isEditing(document.activeElement) ? 'Insert' : 'Normal';
+}
+
+function keyboardControls() {
+  const selector = 'button:not(:disabled), input[type="radio"], input[type="checkbox"], summary, a[href]';
+  const controls = [...(dialog.open ? dialog : app).querySelectorAll(selector)].filter(element =>
+    !element.disabled && element.getClientRects().length && (dialog.open || !element.closest('.sidebar')));
+  // Start with dialog content; closing remains reachable at the end.
+  return dialog.open ? [...controls.filter(el => !el.matches('.close')), ...controls.filter(el => el.matches('.close'))] : controls;
+}
+
+function focusControl(element) {
+  element?.focus({ preventScroll: true });
+  element?.scrollIntoView({ block: 'nearest' });
+}
+
+function runKeyboardCommand(command, value) {
+  if (command === 'move' || command === 'edge') {
+    const controls = keyboardControls(), index = controls.indexOf(document.activeElement);
+    const next = command === 'edge' ? (value < 0 ? 0 : controls.length - 1)
+      : index < 0 ? (value > 0 ? 0 : controls.length - 1) : Math.max(0, Math.min(controls.length - 1, index + value));
+    return focusControl(controls[next]);
+  }
+  if (command === 'activate') {
+    const element = document.activeElement;
+    if (keyboardControls().includes(element) || element?.id === 'toggle-sidebar') element.click();
+    return;
+  }
+  if (command === 'scroll') {
+    const focused = document.activeElement;
+    const candidates = dialog.open ? [focused?.closest('.export-text, .question-list'), dialog] : [document.querySelector('.main')];
+    const pane = candidates.find(element => element && element.scrollHeight > element.clientHeight);
+    pane?.scrollBy({ top: value * pane.clientHeight / 2, behavior: 'instant' });
+    return;
+  }
+  if (command === 'leave-edit') return focusControl(document.querySelector('#question-title'));
+  if (command === 'close') return dialog.close();
+  if (command === 'help') return showKeys();
+  if (!state) return;
+  if (command === 'navigate') {
+    const questions = state.questionnaire.questions, index = questions.findIndex(q => q.id === currentId);
+    if (questions[index + value]) navigate(questions[index + value].id);
+  }
+  if (command === 'choose') {
+    const option = document.querySelectorAll('input[name="answer-option"]')[value];
+    if (option) { focusControl(option); option.click(); }
+  }
+  if (command === 'edit') focusControl(document.querySelector('#answer-text'));
+  if (command === 'submit') document.querySelector('#submit-form:not(:disabled)')?.click();
+  if (command === 'questions') showQuestions();
+  if (command === 'history') showHistory();
+  if (command === 'sidebar') document.querySelector('#toggle-sidebar').click();
+  if (command === 'clear' || command === 'defer') document.querySelector(`[data-action="${command}"]:not(:disabled)`)?.click();
+}
+
+const keyboard = createKeyboard({
+  context: () => ({ enabled: vimEnabled, editing: isEditing(document.activeElement), modal: dialog.open }),
+  run: runKeyboardCommand,
+});
+document.addEventListener('keydown', keyboard.keydown);
+document.addEventListener('focusin', () => { keyboard.reset(); updateKeyboardMode(); });
+document.addEventListener('focusout', () => queueMicrotask(updateKeyboardMode));
+window.addEventListener('blur', keyboard.reset);
+dialog.addEventListener('change', event => {
+  if (event.target.id !== 'vim-enabled') return;
+  vimEnabled = event.target.checked;
+  try { localStorage.setItem('workbench-vim', vimEnabled ? 'on' : 'off'); } catch { /* The toggle still works for this tab. */ }
+  updateKeyboardMode();
+});
 
 function updateSidebarToggle() {
   document.body.classList.toggle('sidebar-collapsed', sidebarCollapsed);
@@ -224,7 +356,7 @@ function submitForm() {
   if (conflict || pending.some(item => item.action.type === 'submit')) return;
   let snapshot;
   try {
-    // Capture exactly what is in the form at the explicit click, including edits
+    // Capture exactly what is in the form at explicit submission, including edits
     // still saving. The existing queue persists those edits before this snapshot.
     snapshot = makeSubmission(state, crypto.randomUUID(), new Date().toISOString());
   } catch (failure) {
@@ -261,7 +393,7 @@ async function refreshReceipt() {
 
 function showSubmission(submission) {
   shownSubmission = submission;
-  openDialog(`${dialogHead('Form submitted', 'Your entire form is saved. You can continue in chat without copying or pasting anything.')}<div class="dialog-body"><div class="success-symbol" aria-hidden="true">✓</div><p id="delivery-status" role="status"></p><details class="submission-details"><summary>View submitted form</summary><pre class="export-text">${escape(formatSubmission(submission))}</pre></details></div><div class="dialog-foot"><button class="button primary" data-modal="close">Back to form</button></div>`, 'submission');
+  openDialog(`${dialogHead('Form submitted', 'Your entire form is saved. You can continue in chat without copying or pasting anything.')}<div class="dialog-body"><div class="success-symbol" aria-hidden="true">✓</div><p id="delivery-status" role="status"></p><details class="submission-details"><summary id="submitted-form-details">View submitted form</summary><pre class="export-text">${escape(formatSubmission(submission))}</pre></details></div><div class="dialog-foot"><button class="button primary" data-modal="close">Back to form</button></div>`, 'submission');
   render(); renderReceipt(); void refreshReceipt();
 }
 
@@ -272,22 +404,23 @@ function showHistory() {
 
 dialog.addEventListener('click', async event => {
   const go = event.target.closest('[data-go]');
-  if (go) { dialog.close(); navigate(go.dataset.go); return; }
+  if (go) { dialogReturnFocus = { selector: '#question-title' }; dialog.close(); navigate(go.dataset.go); return; }
   const prior = event.target.closest('[data-submission]');
   if (prior) return showSubmission(state.submissions.find(s => s.id === prior.dataset.submission));
   const action = event.target.closest('[data-modal]')?.dataset.modal;
   if (action === 'close') dialog.close();
   if (action === 'history') showHistory();
+  if (action === 'keys') showKeys();
   if (action === 'recover') downloadRecovery();
   if (action === 'retry') { modalMode = 'saving'; retry(); }
 
 });
 dialog.addEventListener('close', () => {
-  const wasQuestionPicker = modalMode === 'questions';
+  if (dialog.open) return;
   modalMode = '';
-  const candidates = wasQuestionPicker ? ['#question-selector', '#toggle-sidebar'] : ['#submit-form:not(:disabled)', '#history-button:not([hidden])', '#toggle-sidebar'];
-  const returnTarget = candidates.map(selector => document.querySelector(selector)).find(element => element?.getClientRects().length);
-  returnTarget?.focus({ preventScroll: true });
+  if (!restoreFocus(dialogReturnFocus)) document.querySelector('#question-title')?.focus({ preventScroll: true });
+  dialogReturnFocus = null;
+  updateKeyboardMode();
 });
 
 function downloadRecovery() {
