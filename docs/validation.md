@@ -6,6 +6,14 @@ use the [deployment guide](deployment.md).
 
 ## Automated checks
 
+The OIDC publishing workflow passed actionlint validation and a
+[GitHub Actions dry run](https://github.com/PavingLayer/grilling-workbench/actions/runs/34041793536)
+for `v0.3.0` on September 6, 2026. It ran the tagged source's 27 tests and both
+package smoke tests, rebuilt the archive with Node 24 and npm 11.19.1, verified
+that it exactly matched the GitHub release attachment, and exercised
+`npm publish --dry-run`. Upload and publication steps were skipped; this checks
+the release pipeline but does not establish the npm trusted-publisher connection.
+
 Version 0.3.0 adds arrow and Vim keyboard navigation, focus preservation, and a
 shortcut guide. State schema 1 and socket protocol 1 are unchanged. Keyboard
 checks and remaining browser-validation limits are recorded below.
