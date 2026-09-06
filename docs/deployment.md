@@ -78,7 +78,7 @@ Maintainers publish the checked archive to npm and attach the same file to its
 GitHub release. After the source commit is pushed and GitHub checks pass:
 
 ```sh
-npm publish dist/grilling-workbench-0.2.0.tgz --access public
+npm publish ./dist/grilling-workbench-0.2.0.tgz --access public
 ```
 
 Publication requires an authenticated npm account with publishing access. For
