@@ -1,6 +1,6 @@
 # Agent protocol
 
-Use `npx --yes grilling-workbench@0.2.0` throughout the round. An explicitly
+Use `npx --yes grilling-workbench@0.2.1` throughout the round. An explicitly
 configured local or global executable at the same version is also supported.
 Commands emit JSON to stdout, diagnostics/readiness to stderr, and exit nonzero on
 failure. No command makes model calls or writes to the chat or issue tracker.
@@ -11,9 +11,9 @@ failure. No command makes model calls or writes to the chat or issue tracker.
    `.workbench/checkout-design-r01`. This names one chat's round, not a global inbox.
 
    ```sh
-   npx --yes grilling-workbench@0.2.0 validate --questions /absolute/path/round.json
-   npx --yes grilling-workbench@0.2.0 init --session .workbench/checkout-design-r01 --questions /absolute/path/round.json
-   npx --yes grilling-workbench@0.2.0 serve --session .workbench/checkout-design-r01
+   npx --yes grilling-workbench@0.2.1 validate --questions /absolute/path/round.json
+   npx --yes grilling-workbench@0.2.1 init --session .workbench/checkout-design-r01 --questions /absolute/path/round.json
+   npx --yes grilling-workbench@0.2.1 serve --session .workbench/checkout-design-r01
    ```
 
    Keep `serve` running in a persistent process session. Wait for its `ready` JSON;
@@ -24,7 +24,7 @@ failure. No command makes model calls or writes to the chat or issue tracker.
 2. Start a second persistent process before showing the form:
 
    ```sh
-   npx --yes grilling-workbench@0.2.0 wait --session .workbench/checkout-design-r01
+   npx --yes grilling-workbench@0.2.1 wait --session .workbench/checkout-design-r01
    ```
 
    The command authenticates to this session's loopback TCP socket. The stderr
@@ -52,7 +52,7 @@ failure. No command makes model calls or writes to the chat or issue tracker.
 5. Once the snapshot is in the current agent's context, record receipt:
 
    ```sh
-   npx --yes grilling-workbench@0.2.0 ack SUBMISSION_ID --session .workbench/checkout-design-r01
+   npx --yes grilling-workbench@0.2.1 ack SUBMISSION_ID --session .workbench/checkout-design-r01
    ```
 
    Use the actual returned ID. Never auto-ack inside the listener or before the
@@ -70,7 +70,7 @@ failure. No command makes model calls or writes to the chat or issue tracker.
 `init` copies the source definitions into the session. To revise the live form:
 
 ```sh
-npx --yes grilling-workbench@0.2.0 update --session .workbench/checkout-design-r01 --questions /absolute/path/revised-round.json
+npx --yes grilling-workbench@0.2.1 update --session .workbench/checkout-design-r01 --questions /absolute/path/revised-round.json
 ```
 
 Keep the questionnaire ID for the same round. The command validates and atomically

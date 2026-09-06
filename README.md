@@ -30,7 +30,7 @@ does not appear. Explicit `$grilling-workbench` invocation can verify installati
 normal interview use should select it automatically.
 
 `@latest` selects the skill installer version. The installed skill pins application
-commands to `grilling-workbench@0.2.0`, which npm fetches into its cache when run.
+commands to `grilling-workbench@0.2.1`, which npm fetches into its cache when run.
 Keep that exact application version throughout a round. The bundled `install-skill`
 command remains available for [exact-release and offline installation](docs/deployment.md#bundled-installer-for-an-exact-release).
 
@@ -45,15 +45,15 @@ explains skill discovery and project configuration alongside Matt Pocock's skill
 ## Agent workflow
 
 ```sh
-npx --yes grilling-workbench@0.2.0 init --session .workbench/topic-r01 --questions /absolute/path/round.json
-npx --yes grilling-workbench@0.2.0 serve --session .workbench/topic-r01
+npx --yes grilling-workbench@0.2.1 init --session .workbench/topic-r01 --questions /absolute/path/round.json
+npx --yes grilling-workbench@0.2.1 serve --session .workbench/topic-r01
 ```
 
 Keep the server process running. In a second persistent process, **before showing
 the URL returned by serve**:
 
 ```sh
-npx --yes grilling-workbench@0.2.0 wait --session .workbench/topic-r01
+npx --yes grilling-workbench@0.2.1 wait --session .workbench/topic-r01
 ```
 
 Keep the agent turn waiting on that process. The listener blocks on TCP and exits

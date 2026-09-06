@@ -26,7 +26,7 @@ No `package.json`, project dependency, or global installation is required,
 including in non-Node projects.
 
 `@latest` applies to the skill installer. The skill pins application commands to
-`grilling-workbench@0.2.0`; npm downloads that application into its cache when the
+`grilling-workbench@0.2.1`; npm downloads that application into its cache when the
 agent first runs it. Keep the same exact application version throughout a round.
 
 For exact-release or offline installation, source development, or upgrades, use the
@@ -111,7 +111,7 @@ rules. It is optional; the skill already defines the interview trigger.
 Whenever interviewing the user, use the grilling-workbench skill at
 `.agents/skills/grilling-workbench/SKILL.md`. Apply it alongside the current
 interview workflow, including grill-me, without requiring a request for a browser
-form. The command is `npx --yes grilling-workbench@0.2.0`.
+form. The command is `npx --yes grilling-workbench@0.2.1`.
 
 Read the skill's operating protocol before presenting questions. Keep reasoning,
 clarification, and decision records in the existing workflow. Respect an explicit

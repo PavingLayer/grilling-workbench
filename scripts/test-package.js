@@ -59,7 +59,7 @@ try {
   if (useNpx) cliPrefix = ['--yes', '--offline', '--ignore-scripts', '--cache', cache, '--package', join(temporary, packed.filename), 'grilling-workbench'];
   else await exec('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false', '--cache', cache, join(temporary, packed.filename)], { cwd: consumer });
   const command = args => exec(bin, [...cliPrefix, ...args], { cwd: consumer });
-  assert.equal((await command(['--version'])).stdout.trim(), '0.2.0');
+  assert.equal((await command(['--version'])).stdout.trim(), '0.2.1');
   if (useNpx) {
     const { readdir } = await import('node:fs/promises');
     const entries = await readdir(join(cache, '_npx'));
