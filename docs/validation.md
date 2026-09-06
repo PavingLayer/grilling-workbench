@@ -7,9 +7,10 @@ use the [deployment guide](deployment.md).
 ## Automated checks
 
 The 0.2.0 release checks passed locally on Linux with Node.js 22.22.2 on September
-5, 2026: syntax validation, 18 automated tests, and the installed-package smoke
-test. CI is configured to run the same checks on Node 22 and 24; a hosted CI run
-has not been performed from this repository.
+6, 2026 (UTC): syntax validation, 18 automated tests, and both installed-package
+and `npx` smoke tests. CI runs the same checks on Node 22 and 24; see
+[GitHub Actions](https://github.com/PavingLayer/grilling-workbench/actions/workflows/verify.yml)
+for the hosted results associated with a release commit.
 
 The automated tests cover:
 
@@ -25,11 +26,13 @@ The automated tests cover:
 - Session ownership, listener credentials, startup failure cleanup, port reuse,
   and rejection of unrelated web origins and private-file requests.
 
-The package smoke test packs the actual release, installs it offline in an
-unrelated project directory, and runs the installed executable. It verifies skill
+The package smoke test packs the actual release and exercises it twice: installed
+offline in an unrelated project, and through `npx` from an isolated cache in a
+project without package files or dependencies. Both modes verify skill
 installation without overwriting an existing copy, two isolated sessions, served
 browser assets, whole-form delivery, acknowledgments, definition updates, restart,
-and the source-checkout demo entrypoint.
+and the source-checkout demo entrypoint. The `npx` test uses the local archive,
+so registry publication and a fresh registry download are separate release checks.
 
 ## Embedded-browser checks
 

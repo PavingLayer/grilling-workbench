@@ -1,4 +1,4 @@
-name: Verify local package
+name: Verify package
 
 on: [push, pull_request, workflow_dispatch]
 

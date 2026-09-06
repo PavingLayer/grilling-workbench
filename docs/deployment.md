@@ -1,6 +1,6 @@
 # Local deployment
 
-Version 0.2.0 ships as an npm-compatible archive with a CLI, static browser files,
+Version 0.2.0 ships on public npm with a CLI, static browser files,
 a demo questionnaire, operational docs, and the integration skill. It needs Node
 22+ and no production dependencies or build service. Linux with Node 22.22.2 was
 verified locally. CI is configured for Node 22 and 24 on Linux; other operating
@@ -8,42 +8,83 @@ systems have not been release-tested.
 
 ## Distribution and installation
 
-From a clean checkout, run the checks in README, then:
+Run this from any project, including a non-Node project:
 
 ```sh
+npx --yes grilling-workbench@0.2.0 install-skill
+npx --yes grilling-workbench@0.2.0 --version
+```
+
+npm fetches the application into its execution cache. Only the installed skill
+and the sessions you create live in the consuming project; no project dependency
+or global installation is required. Keep `@0.2.0` on every command so the skill,
+server, and listener use the same release. npm needs registry access on first use;
+use an explicit archive installation when reliable offline availability matters.
+
+Source and releases are maintained at
+[PavingLayer/grilling-workbench](https://github.com/PavingLayer/grilling-workbench).
+The public npm package is
+[grilling-workbench](https://www.npmjs.com/package/grilling-workbench).
+
+If you prefer a project dependency:
+
+```sh
+npm install --save-dev --save-exact grilling-workbench@0.2.0
+npx --no grilling-workbench install-skill
+```
+
+Or explicitly install the executable globally:
+
+```sh
+npm install --global grilling-workbench@0.2.0
+grilling-workbench --version
+```
+
+Run the setup command from each project that should discover it.
+The default target is `.agents/skills/grilling-workbench`. `--target DIR` supports
+another host's skill directory. This command copies the bundled skill; it does
+not edit AGENTS.md, install upstream skills, or overwrite existing skills.
+
+### Offline archives and maintainer releases
+
+From a clean source checkout:
+
+```sh
+npm ci
+npm run check
+npm test
+npm run test:package
 mkdir -p dist
 npm pack --pack-destination dist
 ```
 
 The result is `dist/grilling-workbench-0.2.0.tgz`. The explicit package allowlist
-excludes sessions, receipts, development dependencies, and tests.
-`npm run test:package` independently packs and installs an archive offline in a
-temporary project before exercising its executable and browser endpoints.
+excludes sessions, receipts, development dependencies, and tests. The package
+tests exercise both an offline project installation and `npx` execution from an
+isolated cache, including full form delivery, updates, shutdown, and restart.
+Building the archive does not publish it.
 
-For an existing Node project:
-
-```sh
-npm install --save-dev /absolute/path/grilling-workbench-0.2.0.tgz
-npx --no-install grilling-workbench --version
-npx --no-install grilling-workbench install-skill
-```
-
-For a non-Node project, a global installation avoids introducing package files:
+Offline consumers can install the archive as a project dependency or globally:
 
 ```sh
-npm install --global /absolute/path/grilling-workbench-0.2.0.tgz
-grilling-workbench --version
+npm install --offline --save-dev /absolute/path/grilling-workbench-0.2.0.tgz
+npx --no grilling-workbench install-skill
 ```
 
-Run `grilling-workbench install-skill` from each project that should discover it.
-The default target is `.agents/skills/grilling-workbench`. `--target DIR` supports
-another host's skill directory. This command copies the bundled skill; it does
-not edit AGENTS.md, install upstream skills, or overwrite existing skills.
+Configure the agent to use that installed executable at the matching version;
+the bundled skill defaults to the version-pinned `npx` registry command.
 
-The package remains `private: true` and `UNLICENSED` pending an explicit public
-release/license decision. Those settings do not prevent local archive installation.
-No registry publication, repository creation, or global installation is performed
-by building the archive. There is currently no configured Git remote.
+Maintainers publish the checked archive to npm and attach the same file to its
+GitHub release. After the source commit is pushed and GitHub checks pass:
+
+```sh
+npm publish dist/grilling-workbench-0.2.0.tgz --access public
+```
+
+Publication requires an authenticated npm account with publishing access. For
+later releases, increment the package version and update the pinned commands in
+the docs and bundled skill before running these checks. Never overwrite a
+published version or run mixed versions within a round.
 
 ## Session lifecycle
 
@@ -53,8 +94,8 @@ an absolute path when resuming from another directory. `init` refuses any existi
 directory, so it cannot reset a previous form accidentally.
 
 ```sh
-grilling-workbench init --session .workbench/topic-r01 --questions /absolute/path/round.json
-grilling-workbench serve --session .workbench/topic-r01
+npx --yes grilling-workbench@0.2.0 init --session .workbench/topic-r01 --questions /absolute/path/round.json
+npx --yes grilling-workbench@0.2.0 serve --session .workbench/topic-r01
 ```
 
 Both servers bind exclusively to `127.0.0.1`. By default the OS assigns free HTTP
@@ -108,9 +149,10 @@ receipt refreshes every 2.5 seconds while local saves are settled; **agent compl
 uses TCP events, not this refresh interval**. The [question format](../skills/grilling-workbench/references/questions.md)
 describes changed-answer handling and size limits.
 
-For package upgrades, stop the server, back up its session directory, install the
-new archive, compare the new bundled skill with the installed copy, and restart
-`serve` against the same directory. To inspect a skill upgrade without overwriting
+For package upgrades, stop the server, back up its session directory, select the
+new exact package version, compare its bundled skill with the installed copy, and
+restart `serve` at that version against the same directory. Update a local or
+global installation explicitly if you use one. To inspect a skill upgrade without overwriting
 customizations, use `install-skill --target /path/to/new-empty-directory` and merge
 changes deliberately. State schema 1 is retained in 0.2.0; unsupported state
 versions and corrupt files fail without resetting answers.
