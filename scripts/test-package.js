@@ -51,7 +51,7 @@ try {
   await mkdir(consumer);
   const packed = JSON.parse((await exec('npm', ['pack', '--json', '--pack-destination', temporary], { cwd: resolve('.'), maxBuffer: 5_000_000 })).stdout)[0];
   const files = packed.files.map(f => f.path);
-  for (const file of ['bin/grilling-workbench.js', 'public/app.js', 'src/core.js', 'skills/grilling-workbench/SKILL.md', 'skills/grilling-workbench/references/agent-protocol.md']) assert(files.includes(file), `Missing packaged file ${file}`);
+  for (const file of ['bin/grilling-workbench.js', 'public/app.js', 'public/keyboard.js', 'src/core.js', 'skills/grilling-workbench/SKILL.md', 'skills/grilling-workbench/references/agent-protocol.md']) assert(files.includes(file), `Missing packaged file ${file}`);
   assert(!files.some(f => /^(test|node_modules|\.workbench)\//.test(f) || f.endsWith('.png')), 'No tests, private sessions, dependencies, or mockups ship');
   const cache = join(temporary, 'cache');
   let installed = join(consumer, 'node_modules/grilling-workbench');
@@ -83,7 +83,7 @@ try {
   const server = launch(bin, ['serve', '--session', session]);
   const info = JSON.parse(await server.until(out => { try { return JSON.parse(out).status === 'ready'; } catch { return false; } }));
   const origin = info.url;
-  for (const path of ['', 'app.js', 'styles.css', 'core.js', 'api/health']) assert.equal((await fetch(origin + path)).status, 200, path);
+  for (const path of ['', 'app.js', 'keyboard.js', 'styles.css', 'core.js', 'api/health']) assert.equal((await fetch(origin + path)).status, 200, path);
   assert.equal(JSON.parse((await command(['status', '--session', session])).stdout).url, origin);
   await assert.rejects(command(['serve', '--session', session]), /locked/);
   await command(['init', '--session', '.workbench/round-two', '--demo']);

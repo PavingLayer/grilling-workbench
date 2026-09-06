@@ -271,7 +271,7 @@ function updateKeyboardMode() {
 }
 
 function keyboardControls() {
-  const selector = 'button:not(:disabled), input[type="radio"], input[type="checkbox"], summary, a[href]';
+  const selector = 'button:not(:disabled), input[type="radio"], input[type="checkbox"], summary, a[href], [tabindex="0"]';
   const controls = [...(dialog.open ? dialog : app).querySelectorAll(selector)].filter(element =>
     !element.disabled && element.getClientRects().length && (dialog.open || !element.closest('.sidebar')));
   // Start with dialog content; closing remains reachable at the end.
@@ -292,7 +292,7 @@ function runKeyboardCommand(command, value) {
   }
   if (command === 'activate') {
     const element = document.activeElement;
-    if (keyboardControls().includes(element) || element?.id === 'toggle-sidebar') element.click();
+    if (element?.matches('button:not(:disabled), input[type="radio"], input[type="checkbox"], summary, a[href]') && (!dialog.open || dialog.contains(element))) element.click();
     return;
   }
   if (command === 'scroll') {
@@ -393,7 +393,7 @@ async function refreshReceipt() {
 
 function showSubmission(submission) {
   shownSubmission = submission;
-  openDialog(`${dialogHead('Form submitted', 'Your entire form is saved. You can continue in chat without copying or pasting anything.')}<div class="dialog-body"><div class="success-symbol" aria-hidden="true">✓</div><p id="delivery-status" role="status"></p><details class="submission-details"><summary id="submitted-form-details">View submitted form</summary><pre class="export-text">${escape(formatSubmission(submission))}</pre></details></div><div class="dialog-foot"><button class="button primary" data-modal="close">Back to form</button></div>`, 'submission');
+  openDialog(`${dialogHead('Form submitted', 'Your entire form is saved. You can continue in chat without copying or pasting anything.')}<div class="dialog-body"><div class="success-symbol" aria-hidden="true">✓</div><p id="delivery-status" role="status"></p><details class="submission-details"><summary id="submitted-form-details">View submitted form</summary><pre class="export-text" tabindex="0" aria-label="Submitted form text">${escape(formatSubmission(submission))}</pre></details></div><div class="dialog-foot"><button class="button primary" data-modal="close">Back to form</button></div>`, 'submission');
   render(); renderReceipt(); void refreshReceipt();
 }
 
