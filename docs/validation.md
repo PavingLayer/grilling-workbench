@@ -6,11 +6,14 @@ use the [deployment guide](deployment.md).
 
 ## Automated checks
 
-The 0.2.0 release checks passed locally on Linux with Node.js 22.22.2 on September
+The 0.2.0 and 0.2.1 release checks passed locally on Linux with Node.js 22.22.2 on September
 6, 2026 (UTC): syntax validation, 18 automated tests, and both installed-package
 and `npx` smoke tests. CI runs the same checks on Node 22 and 24; see
 [GitHub Actions](https://github.com/PavingLayer/grilling-workbench/actions/workflows/verify.yml)
 for the hosted results associated with a release commit.
+
+Version 0.2.1 updates the installation guides and matching package version pins.
+The application code, state schema, and socket protocol are unchanged from 0.2.0.
 
 The automated tests cover:
 
