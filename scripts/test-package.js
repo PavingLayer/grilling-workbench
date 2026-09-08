@@ -6,6 +6,7 @@ import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { mockDesktop } from '../test/helpers/mock-desktop.js';
 
 const exec = promisify(execFile);
 const temporary = await mkdtemp(join(tmpdir(), 'workbench-package-'));
@@ -51,7 +52,7 @@ try {
   await mkdir(consumer);
   const packed = JSON.parse((await exec('npm', ['pack', '--json', '--pack-destination', temporary], { cwd: resolve('.'), maxBuffer: 5_000_000 })).stdout)[0];
   const files = packed.files.map(f => f.path);
-  for (const file of ['bin/grilling-workbench.js', 'public/app.js', 'public/keyboard.js', 'src/core.js', 'skills/grilling-workbench/SKILL.md', 'skills/grilling-workbench/references/agent-protocol.md']) assert(files.includes(file), `Missing packaged file ${file}`);
+  for (const file of ['bin/grilling-workbench.js', 'bin/grilling-workbench-codex.js', 'adapters/codex/desktop.js', 'public/app.js', 'public/keyboard.js', 'src/core.js', 'skills/grilling-workbench/SKILL.md', 'skills/grilling-workbench/references/agent-protocol.md', 'skills/grilling-workbench-codex/SKILL.md']) assert(files.includes(file), `Missing packaged file ${file}`);
   assert(!files.some(f => /^(test|node_modules|\.workbench)\//.test(f) || f.endsWith('.png')), 'No tests, private sessions, dependencies, or mockups ship');
   const cache = join(temporary, 'cache');
   let installed = join(consumer, 'node_modules/grilling-workbench');
@@ -73,6 +74,11 @@ try {
   const skill = await readFile(skillPath, 'utf8');
   await assert.rejects(command(['install-skill']), /EEXIST/);
   assert.equal(await readFile(skillPath, 'utf8'), skill);
+  await command(['install-skill', '--skill', 'grilling-workbench-codex']);
+  const companionPath = join(consumer, '.agents/skills/grilling-workbench-codex/SKILL.md');
+  assert.equal(await readFile(companionPath, 'utf8'), await readFile(join(installed, 'skills/grilling-workbench-codex/SKILL.md'), 'utf8'));
+  await assert.rejects(command(['install-skill', '--skill', 'grilling-workbench-codex']), /EEXIST/);
+  await assert.rejects(command(['install-skill', '--skill', '../outside']), /Unknown bundled skill/);
   await command(['init', '--session', '.workbench/round-one', '--demo']);
   const session = join(consumer, '.workbench/round-one');
   const questionFile = join(session, 'questions.json');
@@ -108,6 +114,20 @@ try {
   assert.equal(received.code, 0, received.stderr);
   assert.deepEqual(JSON.parse(received.stdout).submission, submission);
   assert.deepEqual(submission.answers.map(a => a.outcome), ['answered', 'not_answered', 'not_answered']);
+  const desktop = await mockDesktop(temporary, { state: 'idle' });
+  try {
+    const adapter = args => useNpx
+      ? exec('npx', [...cliPrefix.slice(0, -1), 'grilling-workbench-codex', ...args], { cwd: consumer })
+      : exec(join(consumer, 'node_modules/.bin/grilling-workbench-codex'), args, { cwd: consumer });
+    const hostArgs = ['--thread', 'package-test-task', '--socket', desktop.socketPath];
+    assert.equal(JSON.parse((await adapter(['check', ...hostArgs])).stdout).status, 'compatible');
+    const delivered = JSON.parse((await adapter(['listen', '--session', session, ...hostArgs])).stdout);
+    assert.equal(delivered.status, 'delivered');
+    assert.equal(delivered.submissionId, submission.id);
+    const event = desktop.deliveries[0].params.turnStart.request.toolOutput;
+    assert.deepEqual(JSON.parse(event.output), { session, submission });
+    assert.equal(JSON.parse((await command(['pending', '--session', session])).stdout).submissions.length, 1, 'Adapter delivery does not acknowledge');
+  } finally { await desktop.close(); }
   assert.equal(JSON.parse((await command(['pending', '--session', '.workbench/round-two'])).stdout).submissions.length, 0);
   await command(['ack', submission.id, '--session', session]);
   await command(['ack', submission.id, '--session', session]);

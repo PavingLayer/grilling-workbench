@@ -22,7 +22,8 @@ const help = `Grilling Workbench — local forms with event-driven agent deliver
   pending --session DIR                Inspect unacknowledged forms once
   ack SUBMISSION_ID --session DIR       Record receipt after reading in chat
   status --session DIR                 Check the running session once
-  install-skill [--target DIR]          Install the bundled skill without overwriting
+  install-skill [--skill NAME] [--target DIR]
+                                      Install a bundled skill without overwriting
   --version | --help
 
 Keep serve and wait running in separate process sessions. Wait never acknowledges
@@ -53,13 +54,13 @@ async function requireSession(value) {
 export async function main(args = process.argv.slice(2)) {
   const { values, positionals } = parseArgs({ args, allowPositionals: true, options: {
     session: { type: 'string' }, questions: { type: 'string' }, demo: { type: 'boolean' },
-    port: { type: 'string' }, 'signal-port': { type: 'string' }, target: { type: 'string' },
+    port: { type: 'string' }, 'signal-port': { type: 'string' }, target: { type: 'string' }, skill: { type: 'string' },
     help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' },
   } });
   if (values.help || !args.length) return console.log(help);
   if (values.version) return console.log(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version);
   const [command, id] = positionals;
-  const allowed = { init: ['session', 'questions', 'demo'], validate: ['questions'], update: ['session', 'questions'], serve: ['session', 'port', 'signal-port'], wait: ['session'], pending: ['session'], ack: ['session'], status: ['session'], 'install-skill': ['target'] };
+  const allowed = { init: ['session', 'questions', 'demo'], validate: ['questions'], update: ['session', 'questions'], serve: ['session', 'port', 'signal-port'], wait: ['session'], pending: ['session'], ack: ['session'], status: ['session'], 'install-skill': ['target', 'skill'] };
   if (!allowed[command]) throw new Error(`Unknown command.\n${help}`);
   if (positionals.length !== (command === 'ack' ? 2 : 1)) throw new Error('Unexpected or missing command arguments. Use --help.');
   for (const key of Object.keys(values)) if (!allowed[command].includes(key)) throw new Error(`--${key} is not supported by ${command}.`);
@@ -68,15 +69,18 @@ export async function main(args = process.argv.slice(2)) {
     return output({ valid: true, questionnaireId: doc.id, questions: doc.questions.length });
   }
   if (command === 'install-skill') {
-    const target = resolve(values.target || '.agents/skills/grilling-workbench');
+    const name = values.skill || 'grilling-workbench';
+    const available = (await readdir(join(root, 'skills'), { withFileTypes: true })).filter(entry => entry.isDirectory()).map(entry => entry.name);
+    if (!available.includes(name)) throw new Error(`Unknown bundled skill. Choose: ${available.join(', ')}`);
+    const target = resolve(values.target || join('.agents/skills', name));
     await mkdir(dirname(target), { recursive: true });
     await mkdir(target); // Refuse existing skills, including symlinks.
     try {
-      const source = join(root, 'skills/grilling-workbench');
+      const source = join(root, 'skills', name);
       for (const entry of await readdir(source)) await cp(join(source, entry), join(target, entry), { recursive: true, force: false, errorOnExist: true });
     }
     catch (error) { await rm(target, { recursive: true, force: true }); throw error; }
-    return output({ installed: target, next: 'In Codex, invoke $grilling-workbench to verify discovery; restart Codex if it does not appear. Other agent applications may require reloading their skill list.' });
+    return output({ installed: target, next: `Invoke $${name} to verify discovery. Reload the host's skill list if it does not appear.` });
   }
   if (command === 'init') {
     if (Boolean(values.demo) === Boolean(values.questions)) throw new Error('Choose either --questions FILE or --demo.');

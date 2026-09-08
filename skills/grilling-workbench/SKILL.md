@@ -19,10 +19,10 @@ skill on its own.
 Before presenting a round, read [the agent protocol](references/agent-protocol.md).
 When authoring or changing questions, read [the question format](references/questions.md).
 
-Run `npx --yes grilling-workbench@0.3.0` for every CLI command. This uses the
+Run `npx --yes grilling-workbench@0.4.0` for every CLI command. This uses the
 public npm package maintained at `https://github.com/PavingLayer/grilling-workbench`
 without adding a project dependency. Check `--version`; this skill ships with
-package 0.3.0 and socket protocol 1. Keep the exact version throughout a round;
+package 0.4.0 and socket protocol 1. Keep the exact version throughout a round;
 do not use `@latest` or an unversioned command. An explicitly configured local or
 global installation is also supported when its version matches. If installation
 or registry access fails, report it rather than substituting manual copy/paste.
@@ -32,10 +32,12 @@ or registry access fails, report it rather than substituting manual copy/paste.
 - One isolated session directory per chat round; retain its exact path in chat
   context or the workflow's handoff record. Never select another chat's session
   by recency. `init` copies definitions; edit that copy through `update`.
-- Arm `wait --session DIR` before opening the form. Keep the agent's tool wait
-  active. A detached process cannot independently wake an idle chat. If the host
-  cannot maintain that wait, explain the missing integration rather than claiming
-  automatic receipt. Do not replace it with polling or a scheduled heartbeat.
+- Arrange event delivery before opening the form, using the installed companion
+  adapter skill for the current host. After it reports listening, keep its process
+  alive and return control to chat; the adapter delivers the submitted round later.
+  Keep chat and annotations usable while the user answers. If no compatible adapter
+  or input-interruptible host wait exists, report the missing capability. Do not
+  substitute a blocking wait, polling, or a scheduled heartbeat.
 - Submission covers every question in one click. Read the immutable snapshot,
   including `not_answered`, before acknowledging its exact ID. A blank draft is
   not a user decision; a submitted blank is a decision to leave that question
