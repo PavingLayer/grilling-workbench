@@ -20,6 +20,18 @@ does not acknowledge, and install both skills without overwriting existing copie
 The shared installer rejects unknown skill paths. These are local-archive tests;
 public-registry installation is a separate release check.
 
+Version 0.4.0 was published on September 8, 2026 (UTC), through the successful
+[trusted-publishing run](https://github.com/PavingLayer/grilling-workbench/actions/runs/34284722793).
+The release commit also passed both Node 22 and Node 24
+[verification jobs](https://github.com/PavingLayer/grilling-workbench/actions/runs/34284641212).
+npm's `latest` tag resolves to `0.4.0`, provenance attestations are present, and
+the public npm archive matches the 56,036-byte
+[GitHub release attachment](https://github.com/PavingLayer/grilling-workbench/releases/tag/v0.4.0)
+byte for byte. A fresh public-registry download through `npx` in an unrelated
+temporary directory returned `0.4.0`; its packaged adapter verified the exact
+current desktop conversation. Both bundled skills installed there and matched
+the release source, including their reference files.
+
 Version 0.3.0 was published to npm using GitHub Actions OIDC on September 6,
 2026, with signed provenance. At publication, npm's `latest` tag resolved to
 `0.3.0`, and its archive integrity matched the GitHub release attachment. A fresh public-registry
