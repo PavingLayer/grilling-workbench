@@ -2,8 +2,9 @@
 
 Local question forms for project interviews in an embedded browser. The agent
 writes questions, the user submits the entire form, and a host adapter delivers
-the saved answers back to the existing chat without blocking clarification. Reasoning and clarification stay in the
-existing chat. No model API, external assets, or production dependencies.
+the saved answers back to the existing chat without blocking clarification.
+Reasoning and clarification stay in the existing chat. No model API, external
+assets, or production dependencies.
 
 Once installed, the skill applies whenever the agent interviews the user. Calling
 an interview skill such as `grill-me` is enough; the user does not need to request
@@ -14,9 +15,10 @@ The supported deployment is a browser and agent on the same computer. The core
 emits host-independent submission events; the optional Codex desktop adapter can
 wake the owning conversation. No public server or scheduled monitor is included.
 
-**0.4.0 is currently source-only.** The published 0.3.0 package does not include
-this adapter. Use the checkout commands below until 0.4.0 is published; registry
-examples in these guides describe that release's installation.
+**Version 0.4.0 adds the optional Codex desktop adapter and companion skill.**
+Install both skills below to receive submissions while keeping chat and native
+annotations available. The adapter was verified on Linux with bundled Codex
+0.153.0-alpha.5 and uses internal desktop IPC.
 
 ## Install in a project
 

@@ -6,7 +6,7 @@ use the [deployment guide](deployment.md).
 
 ## Automated checks
 
-The unreleased 0.4.0 source passed `npm ci`, syntax validation, all 35 tests, both
+The 0.4.0 source passed `npm ci`, syntax validation, all 35 tests, both
 offline-install and npx package smoke tests, and validation of both skills on Linux
 with Node.js 22.22.2 on September 8, 2026 (UTC). Eight adapter tests cover exact-task
 delivery, draft exclusion, session binding and duplicate-listener exclusion,
@@ -18,11 +18,11 @@ The package smoke tests install and exercise the optional adapter executable,
 deliver a saved form through a simulated desktop connection, verify that delivery
 does not acknowledge, and install both skills without overwriting existing copies.
 The shared installer rejects unknown skill paths. These are local-archive tests;
-0.4.0 has not been published to npm.
+public-registry installation is a separate release check.
 
 Version 0.3.0 was published to npm using GitHub Actions OIDC on September 6,
-2026, with signed provenance. npm's `latest` tag resolves to `0.3.0`, and its
-archive integrity matches the GitHub release attachment. A fresh public-registry
+2026, with signed provenance. At publication, npm's `latest` tag resolved to
+`0.3.0`, and its archive integrity matched the GitHub release attachment. A fresh public-registry
 download through `npx` in an unrelated temporary directory returned `0.3.0`
 and installed the bundled skill with the matching application version pin.
 

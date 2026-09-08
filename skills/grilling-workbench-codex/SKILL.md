@@ -12,8 +12,7 @@ submission events to the exact conversation through the optional adapter.
 Use application version 0.4.0 for both core and adapter. For an explicitly
 configured source checkout, use `node /absolute/checkout/bin/grilling-workbench-codex.js`
 instead of the packaged commands below, and use that checkout for core commands.
-Version 0.4.0 must be published before its registry commands will work; when using
-an unreleased checkout, retain the configured local commands for the whole round.
+Retain the configured executable and version for the whole round.
 
 ## Arm delivery
 

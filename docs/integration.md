@@ -12,9 +12,9 @@ host delivery adapter. The browser, workbench server, and adapter run on the sam
 computer. Local Codex desktop has an optional companion adapter; other hosts need
 their own integration or a verified input-interruptible wait.
 
-The 0.4.0 adapter is currently source-only. Use the source commands in the
-[README](../README.md#agent-workflow) until it is published. The package and Skills
-CLI examples below target the 0.4.0 release; published 0.3.0 lacks the adapter.
+The package and Skills CLI examples below target version 0.4.0, which adds the
+optional Codex adapter. For source development, use the checkout commands in the
+[README](../README.md#agent-workflow).
 
 From the project where you want to use it:
 

@@ -1,11 +1,9 @@
 # Local deployment
 
-Version 0.4.0 is currently source-only and adds an optional Codex desktop adapter
-and companion skill. Published 0.3.0 lacks that adapter. Registry examples below
-target 0.4.0 after publication; for now use the source commands in the README or
-build and explicitly install the local archive. The package includes a CLI,
-static browser files, a demo questionnaire, operational docs, and skills. It needs Node
-22+ and no production dependencies or build service. Linux with Node 22.22.2 was
+Version 0.4.0 adds an optional Codex desktop adapter and companion skill.
+The package includes a CLI, static browser files, a demo questionnaire,
+operational docs, and skills. It needs Node 22+ and no production dependencies
+or build service. Linux with Node 22.22.2 was
 verified locally. CI is configured for Node 22 and 24 on Linux; other operating
 systems have not been release-tested.
 
