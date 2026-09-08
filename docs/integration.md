@@ -7,15 +7,22 @@ interview skill; you do not need to request a browser form.
 
 ## Set up the project once
 
-You need Node.js 22 or later, and an agent that can open a browser and keep a local
-command running while waiting for your answers. The browser, workbench server,
-and agent must run on the same computer.
+You need Node.js 22 or later, an agent that can open a browser, and a compatible
+host delivery adapter. The browser, workbench server, and adapter run on the same
+computer. Local Codex desktop has an optional companion adapter; other hosts need
+their own integration or a verified input-interruptible wait.
+
+The 0.4.0 adapter is currently source-only. Use the source commands in the
+[README](../README.md#agent-workflow) until it is published. The package and Skills
+CLI examples below target the 0.4.0 release; published 0.3.0 lacks the adapter.
 
 From the project where you want to use it:
 
 ```sh
 npx skills@latest add PavingLayer/grilling-workbench \
   --skill grilling-workbench --agent codex
+npx skills@latest add PavingLayer/grilling-workbench \
+  --skill grilling-workbench-codex --agent codex
 ```
 
 The [Skills CLI](https://github.com/vercel-labs/skills) fetches the skill from GitHub
@@ -26,7 +33,7 @@ No `package.json`, project dependency, or global installation is required,
 including in non-Node projects.
 
 `@latest` applies to the skill installer. The skill pins application commands to
-`grilling-workbench@0.3.0`; npm downloads that application into its cache when the
+`grilling-workbench@0.4.0`; npm downloads that application into its cache when the
 agent first runs it. Keep the same exact application version throughout a round.
 
 For exact-release or offline installation, source development, or upgrades, use the
@@ -55,10 +62,11 @@ For explanations or changes to a question, use chat or the browser's native
 Annotate/Quick Annotate features. The agent can revise the form while preserving
 your draft. The app itself only handles answering and submitting questions.
 
-The agent must remain actively waiting on the listener to continue immediately.
-This package does not start new turns in an idle chat. Agents should read the
+With the Codex adapter listening, the agent returns control to chat and receives
+submitted forms as tool results, including when idle. It must not keep the chat
+blocked on the listener process. Agents should read the host-independent
 [operating protocol](../skills/grilling-workbench/references/agent-protocol.md)
-before presenting questions; it covers the listener, receipts, and interruptions.
+and their companion adapter instructions before presenting questions.
 The [question format](../skills/grilling-workbench/references/questions.md) is the
 reference for authoring or updating a round.
 
@@ -111,10 +119,11 @@ rules. It is optional; the skill already defines the interview trigger.
 Whenever interviewing the user, use the grilling-workbench skill at
 `.agents/skills/grilling-workbench/SKILL.md`. Apply it alongside the current
 interview workflow, including grill-me, without requiring a request for a browser
-form. The command is `npx --yes grilling-workbench@0.3.0`.
+form. The command is `npx --yes grilling-workbench@0.4.0`.
 
-Read the skill's operating protocol before presenting questions. Keep reasoning,
-clarification, and decision records in the existing workflow. Respect an explicit
+Read the skill's operating protocol and the installed companion adapter skill
+before presenting questions. Keep reasoning, clarification, and decision records
+in the existing workflow. Respect an explicit
 user request for another interface.
 ```
 
@@ -127,11 +136,15 @@ Try a throwaway two-question round. Answer one question, leave the other blank,
 and submit. The agent should receive both outcomes and continue without another
 chat message. Its listener should already be waiting before the form opens.
 
-If the page stays on “Waiting for the agent,” inspect the listener process and
-follow the [reconnection and receipt instructions](../skills/grilling-workbench/references/agent-protocol.md#definitions-and-interruptions).
-Do not replace the listener with repeated status checks or ask the user to paste
-answers. If the agent application cannot maintain an active tool wait, that
-integration needs support before immediate continuation can work.
+Before submitting, send a clarification in chat or annotate an option. The agent
+should respond while the form remains open and retain your draft after a revision.
+Then submit while the conversation is idle; it should resume without another
+message. Test this separately from successful delivery during an active turn.
+
+If the page stays on “Waiting for the agent,” inspect the adapter process and its
+recorded status once, then follow the [reconnection and receipt instructions](../skills/grilling-workbench/references/agent-protocol.md#definitions-and-interruptions).
+For Codex, use the [companion's recovery instructions](../skills/grilling-workbench-codex/SKILL.md#recovery-and-compatibility).
+Do not replace failed delivery with repeated status checks or pasted answers.
 
 The package tests verify installation, socket delivery, receipts, and recovery.
 Automatic skill selection in a fresh agent installation still needs this real

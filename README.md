@@ -1,8 +1,8 @@
 # Grilling Workbench
 
 Local question forms for project interviews in an embedded browser. The agent
-writes questions, the user submits the entire form, and a waiting socket delivers
-the saved answers back to the agent. Reasoning and clarification stay in the
+writes questions, the user submits the entire form, and a host adapter delivers
+the saved answers back to the existing chat without blocking clarification. Reasoning and clarification stay in the
 existing chat. No model API, external assets, or production dependencies.
 
 Once installed, the skill applies whenever the agent interviews the user. Calling
@@ -10,8 +10,13 @@ an interview skill such as `grill-me` is enough; the user does not need to reque
 a browser form or enable a separate project preference.
 
 **Run with `npx`; no project dependency is required.** Node.js 22 or later is required.
-The supported deployment is a browser and agent on the same computer; no public
-server or idle-chat wakeup service is included.
+The supported deployment is a browser and agent on the same computer. The core
+emits host-independent submission events; the optional Codex desktop adapter can
+wake the owning conversation. No public server or scheduled monitor is included.
+
+**0.4.0 is currently source-only.** The published 0.3.0 package does not include
+this adapter. Use the checkout commands below until 0.4.0 is published; registry
+examples in these guides describe that release's installation.
 
 ## Install in a project
 
@@ -20,17 +25,19 @@ From the project where you want to use the workbench:
 ```sh
 npx skills@latest add PavingLayer/grilling-workbench \
   --skill grilling-workbench --agent codex
+npx skills@latest add PavingLayer/grilling-workbench \
+  --skill grilling-workbench-codex --agent codex
 ```
 
-The [Skills CLI](https://github.com/vercel-labs/skills) installs the skill from
-GitHub into `.agents/skills/grilling-workbench` and records its source in
-`skills-lock.json`. This command targets Codex; omit `--agent codex` to choose
-another agent. Codex detects new skills automatically; restart it if the skill
+The [Skills CLI](https://github.com/vercel-labs/skills) installs the shared skill
+and optional Codex companion into `.agents/skills/` and records their source in
+`skills-lock.json`. For another agent, install the shared skill with that agent's
+own delivery integration. Codex detects new skills automatically; restart it if the skill
 does not appear. Explicit `$grilling-workbench` invocation can verify installation;
 normal interview use should select it automatically.
 
 `@latest` selects the skill installer version. The installed skill pins application
-commands to `grilling-workbench@0.3.0`, which npm fetches into its cache when run.
+commands to `grilling-workbench@0.4.0`, which npm fetches into its cache when run.
 Keep that exact application version throughout a round. The bundled `install-skill`
 command remains available for [exact-release and offline installation](docs/deployment.md#bundled-installer-for-an-exact-release).
 
@@ -44,25 +51,34 @@ explains skill discovery and project configuration alongside Matt Pocock's skill
 
 ## Agent workflow
 
-```sh
-npx --yes grilling-workbench@0.3.0 init --session .workbench/topic-r01 --questions /absolute/path/round.json
-npx --yes grilling-workbench@0.3.0 serve --session .workbench/topic-r01
-```
-
-Keep the server process running. In a second persistent process, **before showing
-the URL returned by serve**:
+From this source checkout:
 
 ```sh
-npx --yes grilling-workbench@0.3.0 wait --session .workbench/topic-r01
+node bin/grilling-workbench.js init --session .workbench/topic-r01 --questions /absolute/path/round.json
+node bin/grilling-workbench.js serve --session .workbench/topic-r01
 ```
 
-Keep the agent turn waiting on that process. The listener blocks on TCP and exits
-with the complete immutable submission. Read it in the current chat, then run
-`ack SUBMISSION_ID --session .workbench/topic-r01` and continue the conversation.
-No extra user click or paste is needed. The socket alone cannot start a turn in an
-idle host chat; an active tool wait is required.
+Keep the server running. For local Codex desktop, verify the adapter and start
+its listener in a second persistent process before opening the returned URL:
 
-Read the complete [agent protocol](skills/grilling-workbench/references/agent-protocol.md)
+```sh
+node bin/grilling-workbench-codex.js check
+node bin/grilling-workbench-codex.js listen --session .workbench/topic-r01
+```
+
+After `listening`, leave the process alive and return control to chat. You can ask
+questions and use native annotations while answering. A saved form arrives as a
+tool result in the same conversation, including when that conversation was idle.
+Read it, run `ack SUBMISSION_ID --session .workbench/topic-r01` with the core
+executable, then continue. Host delivery never automatically acknowledges answers.
+
+The [Codex companion skill](skills/grilling-workbench-codex/SKILL.md) owns its
+connection and recovery instructions. The adapter is optional and uses internal
+desktop IPC; the core has no Codex imports. Other hosts can consume the same TCP
+events and implement their own delivery. Direct `wait` remains available to hosts
+that can wait without blocking new user input; it cannot wake an idle chat alone.
+
+Read the complete [shared protocol](skills/grilling-workbench/references/agent-protocol.md)
 and [question format](skills/grilling-workbench/references/questions.md) before
 using the tool. One directory belongs to one chat round. New rounds use new
 directories; reconnects use the original exact directory.
@@ -101,8 +117,8 @@ saved. Questions left blank are reported as `not_answered`. Each submission keep
 the exact question versions and answers; retries reuse its identity to prevent
 duplicates. Drafts become submitted outcomes only when you explicitly submit the form.
 
-After saving, the server delivers the submission to the waiting agent over a
-socket. Unacknowledged forms replay after a reconnect, and the page shows when the
+After saving, the server emits the submission over a socket to the receiving
+adapter. Unacknowledged forms replay after a reconnect, and the page shows when the
 agent records receipt. The interview skill interprets answers and maintains the
 project's decision records.
 

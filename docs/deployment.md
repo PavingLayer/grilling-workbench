@@ -1,7 +1,10 @@
 # Local deployment
 
-Version 0.3.0 ships on public npm with a CLI, static browser files,
-a demo questionnaire, operational docs, and the integration skill. It needs Node
+Version 0.4.0 is currently source-only and adds an optional Codex desktop adapter
+and companion skill. Published 0.3.0 lacks that adapter. Registry examples below
+target 0.4.0 after publication; for now use the source commands in the README or
+build and explicitly install the local archive. The package includes a CLI,
+static browser files, a demo questionnaire, operational docs, and skills. It needs Node
 22+ and no production dependencies or build service. Linux with Node 22.22.2 was
 verified locally. CI is configured for Node 22 and 24 on Linux; other operating
 systems have not been release-tested.
@@ -13,7 +16,9 @@ Run this from any project, including a non-Node project:
 ```sh
 npx skills@latest add PavingLayer/grilling-workbench \
   --skill grilling-workbench --agent codex
-npx --yes grilling-workbench@0.3.0 --version
+npx skills@latest add PavingLayer/grilling-workbench \
+  --skill grilling-workbench-codex --agent codex
+npx --yes grilling-workbench@0.4.0 --version
 ```
 
 The [Skills CLI](https://github.com/vercel-labs/skills) installs the skill from
@@ -21,9 +26,9 @@ GitHub into `.agents/skills/grilling-workbench` and records its source in
 `skills-lock.json`. The command targets Codex; omit `--agent codex` to choose
 another agent. No project dependency or global installation is required.
 
-`@latest` selects the installer version; the skill pins the application to `0.3.0`.
+`@latest` selects the installer version; the skill pins the application to `0.4.0`.
 The version check above fetches that application into npm's execution cache.
-Keep `@0.3.0` on every application command so the server and listener use the
+Keep `@0.4.0` on every application command so the server and listener use the
 release required by the skill. Initial setup needs npm registry and GitHub access;
 use an explicit archive installation when reliable offline availability matters.
 
@@ -37,7 +42,8 @@ The public npm package is
 To install the skill bundled with a specific application release, use:
 
 ```sh
-npx --yes grilling-workbench@0.3.0 install-skill
+npx --yes grilling-workbench@0.4.0 install-skill
+npx --yes grilling-workbench@0.4.0 install-skill --skill grilling-workbench-codex
 ```
 
 Run this from each project that should discover it. The default target is
@@ -49,14 +55,14 @@ create a Skills CLI lockfile.
 If you prefer a project dependency:
 
 ```sh
-npm install --save-dev --save-exact grilling-workbench@0.3.0
+npm install --save-dev --save-exact grilling-workbench@0.4.0
 npx --no grilling-workbench install-skill
 ```
 
 Or explicitly install the executable globally:
 
 ```sh
-npm install --global grilling-workbench@0.3.0
+npm install --global grilling-workbench@0.4.0
 grilling-workbench --version
 grilling-workbench install-skill
 ```
@@ -74,7 +80,7 @@ mkdir -p dist
 npm pack --pack-destination dist
 ```
 
-The result is `dist/grilling-workbench-0.3.0.tgz`. The explicit package allowlist
+The result is `dist/grilling-workbench-0.4.0.tgz`. The explicit package allowlist
 excludes sessions, receipts, development dependencies, and tests. The package
 tests exercise both an offline project installation and `npx` execution from an
 isolated cache, including full form delivery, updates, shutdown, and restart.
@@ -83,7 +89,7 @@ Building the archive does not publish it.
 Offline consumers can install the archive as a project dependency or globally:
 
 ```sh
-npm install --offline --save-dev /absolute/path/grilling-workbench-0.3.0.tgz
+npm install --offline --save-dev /absolute/path/grilling-workbench-0.4.0.tgz
 npx --no grilling-workbench install-skill
 ```
 
@@ -122,8 +128,8 @@ push the source and wait for GitHub checks. Create a stable `vVERSION` GitHub
 release to trigger publishing. For an existing release, or to retry:
 
 ```sh
-gh workflow run publish.yml --ref main -f tag=v0.3.0 -f dry_run=true
-gh workflow run publish.yml --ref main -f tag=v0.3.0 -f dry_run=false
+gh workflow run publish.yml --ref main -f tag=v0.4.0 -f dry_run=true
+gh workflow run publish.yml --ref main -f tag=v0.4.0 -f dry_run=false
 ```
 
 Manual runs must use `main` and a published stable release tag. Dry runs validate
@@ -140,8 +146,8 @@ an absolute path when resuming from another directory. `init` refuses any existi
 directory, so it cannot reset a previous form accidentally.
 
 ```sh
-npx --yes grilling-workbench@0.3.0 init --session .workbench/topic-r01 --questions /absolute/path/round.json
-npx --yes grilling-workbench@0.3.0 serve --session .workbench/topic-r01
+npx --yes grilling-workbench@0.4.0 init --session .workbench/topic-r01 --questions /absolute/path/round.json
+npx --yes grilling-workbench@0.4.0 serve --session .workbench/topic-r01
 ```
 
 Both servers bind exclusively to `127.0.0.1`. By default the OS assigns free HTTP
@@ -151,14 +157,18 @@ ports and collisions fail with a nonzero exit code. Readiness follows validation
 initial storage, and successful binding of both listeners.
 
 `serve` remains in the foreground. The agent should retain its process handle and
-start `wait` in another persistent process. Ctrl+C or SIGTERM shuts down the
+start the selected adapter in another persistent process. Once listening, return
+control to chat. The Codex companion exits after delivering one submission; rearm
+only when this round needs another submission. Ctrl+C or SIGTERM shuts down the
 server, waits for queued state operations, disconnects listeners, and removes
 runtime metadata and its lock. The questions, answers, and receipts remain.
 
 `status --session DIR` makes one health request and checks the runtime identity;
 `pending --session DIR` reads saved unacknowledged submissions once. Neither is a
 scheduled monitor. Follow the [agent protocol](../skills/grilling-workbench/references/agent-protocol.md)
-for socket waits, exact-ID receipts, and interrupted conversations.
+for adapter delivery, exact-ID receipts, and interrupted conversations.
+The [Codex companion](../skills/grilling-workbench-codex/SKILL.md) documents its
+separate executable, connection check, and recovery.
 
 ## Stored files and ownership
 
@@ -171,6 +181,9 @@ for socket waits, exact-ID receipts, and interrupted conversations.
 | `runtime.json` | Ephemeral process identity, ports, and random socket credential. |
 | `server.lock` | Exclusive server ownership; PID and start time for recovery. |
 | `receipt.lock` | Short-lived acknowledgment writer ownership. |
+| `codex-adapter.json` | Optional adapter's persistent exact-conversation binding. |
+| `codex-adapter-status.json` | Optional adapter's last status, PID, and delivery IDs. |
+| `codex-adapter.lock` | Optional adapter process ownership. |
 | `.gitignore` | Keeps runtime content out of ordinary Git additions. |
 
 Files are written with mode 0600 and newly created session directories with 0700
@@ -200,7 +213,7 @@ new exact package version, compare its bundled skill with the installed copy, an
 restart `serve` at that version against the same directory. Update a local or
 global installation explicitly if you use one. To inspect a skill upgrade without overwriting
 customizations, use `install-skill --target /path/to/new-empty-directory` and merge
-changes deliberately. State schema 1 is retained in 0.3.0; unsupported state
+changes deliberately. State schema 1 is retained in 0.4.0; unsupported state
 versions and corrupt files fail without resetting answers.
 
 When upgrading a skill through the Skills CLI, review its changes and use the
@@ -208,8 +221,8 @@ exact application version required by the updated skill for subsequent rounds.
 Finish active rounds with their original skill instructions and application
 version before upgrading.
 
-Back up `config.json`, `questions.json`, `session.json`, and `chat-receipts.json`
-with the server and receipt writer stopped. Restore those files into a private
+Back up `config.json`, `questions.json`, `session.json`, `chat-receipts.json`, and
+any `codex-adapter.json` binding with the server, adapter, and receipt writer stopped. Restore those files into a private
 session directory, then start serve. Do not restore `runtime.json` or lock files;
 those describe processes, not answers. Atomic replacement and file synchronization
 protect against interrupted writes; backups remain necessary for device loss or

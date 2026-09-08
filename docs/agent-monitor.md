@@ -3,7 +3,7 @@
 The canonical operating instructions ship with the installable skill:
 [agent protocol](../skills/grilling-workbench/references/agent-protocol.md).
 Read that protocol before presenting a form. It covers preparation, the active
-socket wait, receipt, continuation, definition updates, and recovery.
+event receiver, receipt, continuation, definition updates, and recovery.
 
 ## Transport contract
 
@@ -39,10 +39,17 @@ read that snapshot into its context. Neither proves that later reasoning finishe
 a decision ticket closed, or a chat reply was rendered. Delivery is at least once
 until receipt; downstream work must account for its submission ID.
 
-The receiving agent must keep an active tool call waiting on the listener process.
-No verified idle-chat event bridge is included. The browser correctly shows
-waiting until receipt, including if the agent was interrupted. Installing the
-skill does not create a host capability that is absent.
+A host adapter consumes these events and delivers `{session, submission}` into
+the bound conversation. It must validate that binding before reporting readiness,
+keep chat responsive, and leave receipt to the agent. Adapter startup and delivery
+failure must be explicit; uncertain delivery must not be retried automatically.
+The optional [Codex adapter](../adapters/codex/README.md) implements that boundary
+in a separate executable. The core never imports host-specific code.
+
+The browser shows waiting until the agent records receipt, even after a host
+accepts delivery. Direct `wait` alone cannot wake an idle chat. Use it as an agent
+wait only when the host supports interruption by new user input; otherwise use a
+compatible adapter. Installing a skill cannot create an absent host capability.
 
 The [validation note](validation.md) records the checks for active delivery,
 replay, receipts, and restart, along with the limits of that evidence.
