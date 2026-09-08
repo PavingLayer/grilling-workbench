@@ -6,6 +6,20 @@ use the [deployment guide](deployment.md).
 
 ## Automated checks
 
+The unreleased 0.4.0 source passed `npm ci`, syntax validation, all 35 tests, both
+offline-install and npx package smoke tests, and validation of both skills on Linux
+with Node.js 22.22.2 on September 8, 2026 (UTC). Eight adapter tests cover exact-task
+delivery, draft exclusion, session binding and duplicate-listener exclusion,
+idle replay, active-to-idle races, ambiguous timeouts without automatic retries,
+host rejection, cancellation/disconnection recovery, incompatible task-state
+versions, unrelated task events, and fragmented/invalid IPC framing.
+
+The package smoke tests install and exercise the optional adapter executable,
+deliver a saved form through a simulated desktop connection, verify that delivery
+does not acknowledge, and install both skills without overwriting existing copies.
+The shared installer rejects unknown skill paths. These are local-archive tests;
+0.4.0 has not been published to npm.
+
 Version 0.3.0 was published to npm using GitHub Actions OIDC on September 6,
 2026, with signed provenance. npm's `latest` tag resolves to `0.3.0`, and its
 archive integrity matches the GitHub release attachment. A fresh public-registry
@@ -170,17 +184,41 @@ Two diagnostic tool results reached the agent's context:
 The [documented App Server tool-output interface](https://learn.chatgpt.com/docs/app-server#start-a-turn)
 supports starting an idle turn or queuing output into an active turn. The desktop
 IPC route used to reach that interface is internal and was verified only against
-this installed build. This establishes feasibility for a Codex-specific event
-bridge, not a portable integration contract or a shipped workbench feature.
-Actual form submission through such a bridge, receipt/replay recovery, desktop
-restart, and annotation responsiveness still need end-to-end validation.
+this installed build. This initial probe established feasibility for the optional
+adapter implemented afterward. It does not establish a portable integration contract.
+
+### Implemented adapter: live form delivery
+
+The 0.4.0 adapter executable passed its connection check in that same desktop on
+September 8, 2026. Two isolated workbench sessions then delivered actual saved
+form snapshots through the implemented adapter: one during an active turn, and
+one after the agent's final response. Each synthetic form had an answered text
+field and an unanswered field; both complete immutable snapshots arrived as
+`grilling_workbench_submission` tool results in the exact owning conversation.
+
+For the idle case, a one-shot diagnostic subscribed to this conversation's state
+events and submitted its synthetic form only after observing active-to-idle.
+The production adapter, already listening on the workbench socket, delivered the
+saved submission and started a new turn without another user message. Neither
+the diagnostic nor the adapter used polling or a scheduled delivery trigger.
+Both sessions had zero receipts after host delivery; the agent wrote each receipt
+only after reading the snapshot. Adapter and diagnostic connections closed after
+delivery, and the test servers were stopped after acknowledgment.
+
+These checks establish live full-form delivery during active and idle turns on
+the tested Linux desktop. Replay and failure cases have automated integration
+coverage; desktop restart and a user-driven native annotation/clarification round
+trip remain unverified with this adapter.
 
 ## Limits of this evidence
 
-An actively waiting listener receives submissions immediately. The package does
-not provide an idle-chat wakeup bridge. One user submission was captured over TCP
-while the agent was idle, then read only after another chat message; that is not
-evidence of automatic continuation in an idle chat.
+The optional Codex adapter supports event delivery and idle wakeup on the tested
+desktop build. The core socket alone still cannot wake an idle chat. An earlier
+0.3.0 submission captured over TCP while the agent was idle was read only after
+another chat message; the adapter checks above separately establish continuation.
+Windows, remote tasks, and future incompatible desktop IPC revisions are outside
+the adapter's tested support. Reconnecting after desktop/window restart requires
+the exact original conversation and session.
 
 The skill now directs agents to use the workbench for all interviews. Metadata
 validation checks its structure; it does not prove that every model will select
