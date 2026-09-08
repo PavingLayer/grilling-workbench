@@ -1,6 +1,6 @@
 {
   "name": "grilling-workbench",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Local question forms with whole-form submission and event-driven agent delivery",
   "license": "MIT",
   "repository": {
@@ -11,15 +11,15 @@
   "bugs": { "url": "https://github.com/PavingLayer/grilling-workbench/issues" },
   "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
   "type": "module",
-  "bin": { "grilling-workbench": "bin/grilling-workbench.js" },
-  "files": ["bin/", "src/", "public/", "data/questions.json", "skills/", "docs/*.md"],
+  "bin": { "grilling-workbench": "bin/grilling-workbench.js", "grilling-workbench-codex": "bin/grilling-workbench-codex.js" },
+  "files": ["bin/", "src/", "adapters/", "public/", "data/questions.json", "skills/", "docs/*.md"],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "dev": "node src/dev.js",
     "start": "node src/dev.js",
-    "check": "node --check bin/grilling-workbench.js && node --check src/dev.js && node --check src/cli.js && node --check src/runtime.js && node --check src/core.js && node --check src/server.js && node --check src/storage.js && node --check src/delivery.js && node --check src/monitor.js && node --check src/submission-socket.js && node --check public/app.js && node --check public/keyboard.js",
+    "check": "node --check bin/grilling-workbench.js && node --check bin/grilling-workbench-codex.js && node --check adapters/codex/cli.js && node --check adapters/codex/desktop.js && node --check adapters/codex/listen.js && node --check src/dev.js && node --check src/cli.js && node --check src/runtime.js && node --check src/core.js && node --check src/server.js && node --check src/storage.js && node --check src/delivery.js && node --check src/monitor.js && node --check src/submission-socket.js && node --check public/app.js && node --check public/keyboard.js",
     "test": "node --test test/*.test.js",
     "test:package": "node scripts/test-package.js && node scripts/test-package.js --npx"
   },
