@@ -145,6 +145,36 @@ Native browser annotations were received in chat during UI iteration. After the
 0.2.0 runtime upgrade, the existing preview still displayed the user's submitted
 answers; its saved state and receipt files matched their pre-upgrade backups.
 
+## Codex event-delivery feasibility check
+
+On September 8, 2026 (UTC), a diagnostic on Linux verified delivery into the
+existing desktop conversation using the desktop's bundled Codex
+`0.153.0-alpha.5`. The desktop owned its App Server through a private stdio
+connection; the CLI's default App Server control socket was absent. A separate
+client connected to the desktop IPC socket and successfully discovered the owner
+of the exact current conversation.
+
+Two diagnostic tool results reached the agent's context:
+
+- During an active turn, `thread-follower-steer-turn` forwarded a `toolOutput`
+  through the desktop to App Server `turn/start`. The agent received the diagnostic
+  as a separate tool result; the command's stdout contained only the delivery
+  acknowledgment, not the diagnostic nonce.
+- A one-shot background client subscribed to that conversation's state events.
+  After the agent sent its final response, the client observed the conversation
+  change from active to idle and called `thread-follower-start-turn` with an empty
+  input array and diagnostic `toolOutput`. A new turn began in the same conversation
+  and the agent received the diagnostic without another user message. The client
+  unsubscribed and closed after delivery. No polling or scheduled trigger was used.
+
+The [documented App Server tool-output interface](https://learn.chatgpt.com/docs/app-server#start-a-turn)
+supports starting an idle turn or queuing output into an active turn. The desktop
+IPC route used to reach that interface is internal and was verified only against
+this installed build. This establishes feasibility for a Codex-specific event
+bridge, not a portable integration contract or a shipped workbench feature.
+Actual form submission through such a bridge, receipt/replay recovery, desktop
+restart, and annotation responsiveness still need end-to-end validation.
+
 ## Limits of this evidence
 
 An actively waiting listener receives submissions immediately. The package does
