@@ -207,8 +207,25 @@ delivery, and the test servers were stopped after acknowledgment.
 
 These checks establish live full-form delivery during active and idle turns on
 the tested Linux desktop. Replay and failure cases have automated integration
-coverage; desktop restart and a user-driven native annotation/clarification round
-trip remain unverified with this adapter.
+coverage; desktop restart remains unverified with this adapter.
+
+### User-driven annotation and submission
+
+On September 8, 2026 (UTC), the user completed an isolated two-question demo in
+the same desktop conversation. After the adapter reported listening, the agent
+returned control to chat. Before submitting, the user selected text inside an
+option and sent a native browser annotation asking for clarification. The agent
+received the selected text and annotated screenshot and answered in chat without
+cancelling or waiting on the adapter process.
+
+The user then submitted a choice and a text note. The complete immutable snapshot
+arrived automatically as a `grilling_workbench_submission` tool result after the
+clarification reply had finished, with no additional user message. The agent
+verified the session and questionnaire, read both answers, and acknowledged the
+exact submission. The embedded browser then displayed “Received by the agent in
+chat.” This verifies the user-driven annotation, clarification, submission, idle
+wakeup, and receipt round trip on the tested desktop build. Live question revision
+during clarification was not exercised in this round.
 
 ## Limits of this evidence
 
@@ -225,8 +242,7 @@ validation checks its structure; it does not prove that every model will select
 it correctly. Automatic discovery and continuation in a fresh agent installation
 still need the [target-agent checks](integration.md#check-answer-delivery-in-your-agent).
 
-Screen-reader testing and a dedicated option-targeted annotation/clarification
-round trip remain outstanding. Other operating systems, network filesystems,
+Screen-reader testing remains outstanding. Other operating systems, network filesystems,
 device loss, and power-loss durability have not been release-tested. Exactly-once
 chat replies across crashes are not guaranteed; the agent protocol documents
 receipt and downstream-work recovery separately.
