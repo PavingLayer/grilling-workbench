@@ -20,8 +20,8 @@ submission and exits; only the receiving agent records acknowledgment.
 
 The [companion skill](../../skills/grilling-workbench-codex/SKILL.md) is the
 canonical guide for installed commands, agent behavior, and recovery. Install it
-alongside the shared skill only for this host. The 0.4.0 adapter is unreleased;
-use a source checkout or local archive until publication.
+alongside the shared skill only for this host. Both executables and skills are
+included in the 0.4.0 package.
 
 ## Boundary and compatibility
 
